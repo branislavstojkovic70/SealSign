@@ -2,6 +2,7 @@ import { Search } from "@mui/icons-material";
 import {
 	Box,
 	Chip,
+	CircularProgress,
 	Grid,
 	InputAdornment,
 	Paper,
@@ -22,6 +23,7 @@ import toast from "react-hot-toast";
 import HomeShell from "../components/HomeShell";
 import PageScrollArea from "../components/PageScrollArea";
 import { fadeUp, liveDotPulse, scaleFadeUp } from "../utils/homeMotion";
+import { fetchHcsMessages } from "../utils/archiveApi";
 
 export type AuditLogRow = {
 	id: string;
@@ -33,116 +35,6 @@ export type AuditLogRow = {
 	documentHash: string;
 };
 
-const MOCK_AUDIT_LOG: AuditLogRow[] = [
-	{
-		id: "1",
-		status: "Sealed",
-		documentType: "Construction Permit",
-		issuerEns: "city-planning.sepolia.eth",
-		timestamp: "2026-04-04T14:22:11Z",
-		documentHash:
-			"a3f5c8e12d9b0471f6e2048aa91c3d7e5b0f2a9c8d1e4f7a0b3c6d9e2f5a8b1c",
-	},
-	{
-		id: "2",
-		status: "Recorded",
-		documentType: "University Diploma",
-		issuerEns: "metropolitan-uni.sepolia.eth",
-		timestamp: "2026-04-04T11:05:33Z",
-		documentHash:
-			"7e2b9d4c1f8a0e3b6c9d2f5a8b1c4e7f0a3d6b9c2e5f8a1b4c7d0e3f6a9b2c",
-	},
-	{
-		id: "3",
-		status: "Anchored",
-		documentType: "Medical Board License",
-		issuerEns: "health-registry.sepolia.eth",
-		timestamp: "2026-04-03T18:41:02Z",
-		documentHash:
-			"2c5f8a1b4e7d0c3f6a9b2e5d8c1f4a7b0e3d6c9f2a5b8e1d4c7f0a3b6d9e2c",
-	},
-	{
-		id: "4",
-		status: "Sealed",
-		documentType: "Corporate Articles of Incorporation",
-		issuerEns: "commerce-bureau.sepolia.eth",
-		timestamp: "2026-04-03T09:17:48Z",
-		documentHash:
-			"f1a4b7c0d3e6f9a2b5c8d1e4f7a0b3c6d9e2f5a8b1c4d7e0f3a6b9c2d5e8f",
-	},
-	{
-		id: "5",
-		status: "Recorded",
-		documentType: "Property Title Deed",
-		issuerEns: "land-records.sepolia.eth",
-		timestamp: "2026-04-02T16:53:29Z",
-		documentHash:
-			"9b2e5d8c1f4a7b0e3d6c9f2a5b8e1d4c7f0a3b6d9e2c5f8a1b4c7d0e3f6a9b",
-	},
-	{
-		id: "6",
-		status: "Recorded",
-		documentType: "Food Safety Certificate",
-		issuerEns: "health-inspector.sepolia.eth",
-		timestamp: "2026-04-04T08:30:00Z",
-		documentHash:
-			"c4d7e0f3a6b9c2d5e8f1a4b7c0d3e6f9a2b5c8d1e4f7a0b3c6d9e2f5a8b1c4",
-	},
-	{
-		id: "7",
-		status: "Sealed",
-		documentType: "Professional Engineer Stamp",
-		issuerEns: "pe-board.sepolia.eth",
-		timestamp: "2026-04-01T12:00:00Z",
-		documentHash:
-			"d5e8f1a4b7c0d3e6f9a2b5c8d1e4f7a0b3c6d9e2f5a8b1c4d7e0f3a6b9c2d",
-	},
-	{
-		id: "8",
-		status: "Anchored",
-		documentType: "Export Customs Declaration",
-		issuerEns: "trade-gov.sepolia.eth",
-		timestamp: "2026-04-02T07:15:22Z",
-		documentHash:
-			"e6f9a2b5c8d1e4f7a0b3c6d9e2f5a8b1c4d7e0f3a6b9c2d5e8f1a4b7c0d3e6",
-	},
-	{
-		id: "9",
-		status: "Recorded",
-		documentType: "Nonprofit Tax Exemption",
-		issuerEns: "irs-mirror.sepolia.eth",
-		timestamp: "2026-03-30T19:45:00Z",
-		documentHash:
-			"f7a0b3c6d9e2f5a8b1c4d7e0f3a6b9c2d5e8f1a4b7c0d3e6f9a2b5c8d1e4f",
-	},
-	{
-		id: "10",
-		status: "Sealed",
-		documentType: "Pilot License Renewal",
-		issuerEns: "faa-registry.sepolia.eth",
-		timestamp: "2026-04-04T16:02:41Z",
-		documentHash:
-			"a8b1c4d7e0f3a6b9c2d5e8f1a4b7c0d3e6f9a2b5c8d1e4f7a0b3c6d9e2f5a",
-	},
-	{
-		id: "11",
-		status: "Recorded",
-		documentType: "Solar Installation Warranty",
-		issuerEns: "green-cert.sepolia.eth",
-		timestamp: "2026-03-29T10:20:00Z",
-		documentHash:
-			"b9c2d5e8f1a4b7c0d3e6f9a2b5c8d1e4f7a0b3c6d9e2f5a8b1c4d7e0f3a6b",
-	},
-	{
-		id: "12",
-		status: "Anchored",
-		documentType: "Court Filing Receipt",
-		issuerEns: "district-court.sepolia.eth",
-		timestamp: "2026-04-03T22:11:09Z",
-		documentHash:
-			"c0d3e6f9a2b5c8d1e4f7a0b3c6d9e2f5a8b1c4d7e0f3a6b9c2d5e8f1a4b7c",
-	},
-];
 
 const DEFAULT_ROWS_PER_PAGE = 5;
 const ROWS_PER_PAGE_OPTIONS = [5, 10, 25] as const;
@@ -187,18 +79,41 @@ function statusChipColor(
 
 export default function ArchivePage() {
 	const theme = useTheme();
+	const [rows, setRows] = useState<AuditLogRow[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [fetchError, setFetchError] = useState<string | null>(null);
 	const [hashQuery, setHashQuery] = useState("");
 	const [sortMode, setSortMode] = useState<AuditSortMode>("newest");
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_ROWS_PER_PAGE);
 
+	useEffect(() => {
+		fetchHcsMessages()
+			.then((messages) => {
+				setRows(
+					messages.map((msg) => ({
+						id: String(msg.sequenceNumber),
+						status: "Sealed" as const,
+						documentType: msg.document.type,
+						issuerEns: msg.document.issuer,
+						timestamp: msg.document.issuedAt,
+						documentHash: msg.document.hash,
+					})),
+				);
+			})
+			.catch((err: unknown) => {
+				setFetchError(err instanceof Error ? err.message : "Failed to load archive");
+			})
+			.finally(() => setLoading(false));
+	}, []);
+
 	const filtered = useMemo(() => {
 		const q = hashQuery.trim().toLowerCase().replace(/^0x/i, "");
-		if (!q) return MOCK_AUDIT_LOG;
-		return MOCK_AUDIT_LOG.filter((row) =>
+		if (!q) return rows;
+		return rows.filter((row) =>
 			row.documentHash.toLowerCase().includes(q),
 		);
-	}, [hashQuery]);
+	}, [hashQuery, rows]);
 
 	const sorted = useMemo(() => {
 		const copy = [...filtered];
@@ -433,6 +348,19 @@ export default function ArchivePage() {
 						</Box>
 					</Box>
 
+					{loading && (
+						<Box sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
+							<CircularProgress size={32} sx={{ color: "#10B981" }} />
+						</Box>
+					)}
+
+					{fetchError && !loading && (
+						<Typography variant="body2" color="error" sx={{ mt: 3 }}>
+							{fetchError}
+						</Typography>
+					)}
+
+					{!loading && !fetchError && (
 					<TableContainer
 						component={Paper}
 						elevation={0}
@@ -647,6 +575,7 @@ export default function ArchivePage() {
 							}}
 						/>
 					</TableContainer>
+					)}
 				</Grid>
 			</HomeShell>
 		</PageScrollArea>

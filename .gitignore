@@ -12,6 +12,7 @@ dist/
 frontend/dist/
 out/
 frontend/out/
+frontend/.vite/
 
 # Environment variables
 .env
