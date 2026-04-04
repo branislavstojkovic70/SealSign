@@ -4,19 +4,18 @@ import {
   TopicMessageSubmitTransaction,
 } from '@hashgraph/sdk';
 
-export interface DocumentRecord {
-  hash: string;
-  issuer: string;
-  issuerAddress: string;
-  type: string;
-  recipient: string;
-  issuedAt: string;
-}
+import {
+  type NormalizedLedgerDocument,
+  type WrittenLedgerPayload,
+  normalizeLedgerDocument,
+} from './ledgerDocument';
+
+export type { NormalizedLedgerDocument } from './ledgerDocument';
 
 export interface TopicMessage {
   sequenceNumber: number;
   consensusTimestamp: string;
-  document: DocumentRecord;
+  document: NormalizedLedgerDocument;
 }
 
 /**
@@ -61,22 +60,24 @@ function buildClient(): Client {
  */
 export async function submitDocumentHash(params: {
   documentHash: string;
-  issuerName: string;
+  documentName: string;
   issuerAddress: string;
-  documentType: string;
-  recipientName: string;
+  recipientAddress: string;
+  issuerEns?: string;
+  recipientEns?: string;
 }): Promise<{ transactionId: string; sequenceNumber: number; timestamp: string }> {
   const topicId = process.env.HEDERA_TOPIC_ID;
   if (!topicId) throw new Error('HEDERA_TOPIC_ID must be set in .env');
 
-  const payload: DocumentRecord = {
+  const payload: WrittenLedgerPayload = {
     hash: params.documentHash,
-    issuer: params.issuerName,
+    documentName: params.documentName,
     issuerAddress: params.issuerAddress,
-    type: params.documentType,
-    recipient: params.recipientName,
+    recipientAddress: params.recipientAddress,
     issuedAt: new Date().toISOString(),
   };
+  if (params.issuerEns) payload.issuerEns = params.issuerEns;
+  if (params.recipientEns) payload.recipientEns = params.recipientEns;
 
   const client = buildClient();
 
@@ -141,13 +142,22 @@ export async function fetchTopicMessages(): Promise<TopicMessage[]> {
     message: string;
   }> };
 
-  return data.messages.map((msg) => {
-    const decoded = Buffer.from(msg.message, 'base64').toString('utf-8');
-    const document = JSON.parse(decoded) as DocumentRecord;
-    return {
-      sequenceNumber: msg.sequence_number,
-      consensusTimestamp: msg.consensus_timestamp,
-      document,
-    };
-  });
+  return data.messages
+    .map((msg) => {
+      const decoded = Buffer.from(msg.message, 'base64').toString('utf-8');
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(decoded);
+      } catch {
+        return null;
+      }
+      const document = normalizeLedgerDocument(parsed);
+      if (!document) return null;
+      return {
+        sequenceNumber: msg.sequence_number,
+        consensusTimestamp: msg.consensus_timestamp,
+        document,
+      };
+    })
+    .filter((m): m is TopicMessage => m !== null);
 }

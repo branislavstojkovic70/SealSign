@@ -98,8 +98,12 @@ export default function ArchivePage() {
 					messages.map((msg) => ({
 						id: String(msg.sequenceNumber),
 						status: "Sealed" as const,
-						documentType: msg.document.type,
-						issuerEns: msg.document.issuer,
+						documentType: msg.document.documentName ?? msg.document.type ?? "",
+						issuerEns:
+							msg.document.issuerEns ??
+							msg.document.issuer ??
+							msg.document.issuerAddress ??
+							"",
 						timestamp: msg.document.issuedAt,
 						documentHash: msg.document.hash,
 					})),
@@ -109,7 +113,7 @@ export default function ArchivePage() {
 				setFetchError(err instanceof Error ? err.message : "Failed to load archive");
 			})
 			.finally(() => setLoading(false));
-	}, []);
+	}, [isConnected, address]);
 
 	const filtered = useMemo(() => {
 		const q = hashQuery.trim().toLowerCase().replace(/^0x/i, "");

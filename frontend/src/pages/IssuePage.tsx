@@ -1,5 +1,6 @@
 import { Box, Grid } from "@mui/material";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { ethers } from "ethers";
 import { useAppKitAccount } from "@reown/appkit/react";
 import HomeShell from "../components/HomeShell";
 import PageScrollArea from "../components/PageScrollArea";
@@ -9,12 +10,13 @@ import { sha256HexFromFile } from "../utils/hashFile";
 import { isPdfFile } from "../utils/issueHelpers";
 import { postIssue } from "../utils/issueApi";
 import type { IssueApiResult } from "../utils/issueApi";
+import { resolveEvmOrEns } from "../utils/sepoliaEns";
 
 export default function IssuePage() {
 	const { isConnected, address } = useAppKitAccount();
 	const [documentName, setDocumentName] = useState("");
-	const [institutionName, setInstitutionName] = useState("");
-	const [recipientName, setRecipientName] = useState("");
+	const [issuerIdentity, setIssuerIdentity] = useState("");
+	const [recipientIdentity, setRecipientIdentity] = useState("");
 	const [fileLabel, setFileLabel] = useState<string | null>(null);
 	const [hashHex, setHashHex] = useState<string | null>(null);
 	const [hashError, setHashError] = useState<string | null>(null);
@@ -22,6 +24,12 @@ export default function IssuePage() {
 	const [submitting, setSubmitting] = useState(false);
 	const [issueError, setIssueError] = useState<string | null>(null);
 	const [issueResult, setIssueResult] = useState<IssueApiResult | null>(null);
+
+	useEffect(() => {
+		if (address) {
+			setIssuerIdentity((prev) => (prev.trim() === "" ? address : prev));
+		}
+	}, [address]);
 
 	const processFile = useCallback(async (file: File | undefined) => {
 		if (!file) return;
@@ -52,12 +60,33 @@ export default function IssuePage() {
 		setIssueError(null);
 		setSubmitting(true);
 		try {
+			const issuerResolved = await resolveEvmOrEns(issuerIdentity);
+			if (!issuerResolved) {
+				setIssueError(
+					"Issuer: enter a valid Sepolia address (0x…) or resolveable ENS name.",
+				);
+				return;
+			}
+			const recipientResolved = await resolveEvmOrEns(recipientIdentity);
+			if (!recipientResolved) {
+				setIssueError(
+					"Recipient: enter a valid Sepolia address (0x…) or resolveable ENS name.",
+				);
+				return;
+			}
+
+			const issuerRaw = issuerIdentity.trim();
+			const recipientRaw = recipientIdentity.trim();
+			const issuerEns = ethers.utils.isAddress(issuerRaw) ? undefined : issuerRaw;
+			const recipientEns = ethers.utils.isAddress(recipientRaw) ? undefined : recipientRaw;
+
 			const result = await postIssue({
 				hash: hashHex,
-				issuerName: institutionName,
-				issuerAddress: address ?? '',
-				documentType: documentName,
-				recipientName,
+				documentName: documentName.trim(),
+				issuerAddress: issuerResolved,
+				recipientAddress: recipientResolved,
+				issuerEns,
+				recipientEns,
 			});
 			setIssueResult(result);
 		} catch (err) {
@@ -71,8 +100,8 @@ export default function IssuePage() {
 		isConnected &&
 		Boolean(hashHex) &&
 		documentName.trim() !== "" &&
-		institutionName.trim() !== "" &&
-		recipientName.trim() !== "" &&
+		issuerIdentity.trim() !== "" &&
+		recipientIdentity.trim() !== "" &&
 		!hashing &&
 		!submitting &&
 		!issueResult;
@@ -101,11 +130,11 @@ export default function IssuePage() {
 					>
 						<IssueFormCard
 							documentName={documentName}
-							institutionName={institutionName}
-							recipientName={recipientName}
+							issuerIdentity={issuerIdentity}
+							recipientIdentity={recipientIdentity}
 							onDocumentNameChange={setDocumentName}
-							onInstitutionNameChange={setInstitutionName}
-							onRecipientNameChange={setRecipientName}
+							onIssuerIdentityChange={setIssuerIdentity}
+							onRecipientIdentityChange={setRecipientIdentity}
 							hashing={hashing}
 							fileLabel={fileLabel}
 							hashError={hashError}

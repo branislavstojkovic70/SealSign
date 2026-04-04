@@ -33,9 +33,11 @@ async function main() {
 
   const payload = {
     hash,
-    issuer: 'University of Belgrade',
-    type: 'Diploma',
-    recipient: 'Marko Petrovic',
+    documentName: 'Diploma',
+    issuerAddress: '0x1111111111111111111111111111111111111111',
+    recipientAddress: '0x2222222222222222222222222222222222222222',
+    issuerEns: 'demo-issuer.eth',
+    recipientEns: 'demo-recipient.eth',
     issuedAt: new Date().toISOString(),
   };
 

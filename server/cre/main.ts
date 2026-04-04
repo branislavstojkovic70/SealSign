@@ -39,10 +39,19 @@ interface Config {
 
 interface DocumentRecord {
   hash: string;
-  issuer: string;
-  type: string;
-  recipient: string;
   issuedAt: string;
+  documentName?: string;
+  type?: string;
+  issuerAddress?: string;
+  recipientAddress?: string;
+  institutionAddress?: string;
+  signerAddress?: string;
+  issuer?: string;
+  recipient?: string;
+  issuerEns?: string;
+  recipientEns?: string;
+  institutionEns?: string;
+  signerEns?: string;
 }
 
 interface MirrorNodeMessage {
@@ -59,8 +68,10 @@ interface MirrorNodeResponse {
 interface VerificationResult {
   verified: boolean;
   issuer: string;
-  documentType: string;
+  issuerAddress: string;
   recipient: string;
+  recipientAddress: string;
+  documentType: string;
   issuedAt: string;
   hederaSequence: number;
   confidence: "high" | "low";
@@ -160,15 +171,31 @@ function verifyDocument(
     }
 
     if (record.hash.toLowerCase() === hash.toLowerCase()) {
+      const issuerAddr =
+        record.issuerAddress ?? record.institutionAddress ?? "";
+      const recipientAddr =
+        record.recipientAddress ?? record.signerAddress ?? "";
+      const docName = record.documentName ?? record.type ?? "";
+      const issuerLine =
+        record.issuerEns ??
+        record.institutionEns ??
+        record.issuer ??
+        issuerAddr;
+      const recipientLine =
+        record.recipientEns ??
+        record.signerEns ??
+        record.recipient ??
+        recipientAddr;
       runtime.log(
-        `[SealSign] Match found at sequence ${msg.sequence_number} ` +
-          `issuer=${record.issuer}`
+        `[SealSign] Match found at sequence ${msg.sequence_number} issuer=${issuerLine}`
       );
       return {
         verified: true,
-        issuer: record.issuer,
-        documentType: record.type,
-        recipient: record.recipient,
+        issuer: issuerLine,
+        issuerAddress: issuerAddr,
+        recipient: recipientLine,
+        recipientAddress: recipientAddr,
+        documentType: docName,
         issuedAt: record.issuedAt,
         hederaSequence: msg.sequence_number,
         confidence: "high",
@@ -180,8 +207,10 @@ function verifyDocument(
   return {
     verified: false,
     issuer: "",
-    documentType: "",
+    issuerAddress: "",
     recipient: "",
+    recipientAddress: "",
+    documentType: "",
     issuedAt: "",
     hederaSequence: 0,
     confidence: "high",

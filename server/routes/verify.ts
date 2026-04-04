@@ -46,8 +46,10 @@ router.post('/', async (req: Request<{}, {}, VerifyRequestBody>, res: Response, 
     res.json({
       verified: true,
       issuer: result.issuer,
-      documentType: result.documentType,
+      issuerAddress: result.issuerAddress,
       recipient: result.recipient,
+      recipientAddress: result.recipientAddress,
+      documentType: result.documentType,
       issuedAt: result.issuedAt,
       hederaSequence: result.hederaSequence,
     });

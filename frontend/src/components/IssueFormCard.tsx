@@ -1,11 +1,4 @@
-import {
-	Card,
-	CardContent,
-	Stack,
-	TextField,
-	Typography,
-	useTheme,
-} from "@mui/material";
+import { Card, CardContent, Stack, TextField, Typography, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { scaleFadeUp } from "../utils/homeMotion";
 import IssuePdfDropZone from "./IssuePdfDropZone";
@@ -15,11 +8,11 @@ import IssueSuccessCollapse from "./IssueSuccessCollapse";
 
 export type IssueFormCardProps = {
 	documentName: string;
-	institutionName: string;
-	recipientName: string;
+	issuerIdentity: string;
+	recipientIdentity: string;
 	onDocumentNameChange: (value: string) => void;
-	onInstitutionNameChange: (value: string) => void;
-	onRecipientNameChange: (value: string) => void;
+	onIssuerIdentityChange: (value: string) => void;
+	onRecipientIdentityChange: (value: string) => void;
 	hashing: boolean;
 	fileLabel: string | null;
 	hashError: string | null;
@@ -40,11 +33,11 @@ export default function IssueFormCard(props: IssueFormCardProps) {
 	const theme = useTheme();
 	const {
 		documentName,
-		institutionName,
-		recipientName,
+		issuerIdentity,
+		recipientIdentity,
 		onDocumentNameChange,
-		onInstitutionNameChange,
-		onRecipientNameChange,
+		onIssuerIdentityChange,
+		onRecipientIdentityChange,
 		hashing,
 		fileLabel,
 		hashError,
@@ -80,24 +73,27 @@ export default function IssueFormCard(props: IssueFormCardProps) {
 				<Stack spacing={2.5}>
 					<TextField
 						fullWidth
-						label="Document Name"
+						label="Document name"
 						variant="outlined"
 						value={documentName}
 						onChange={(e) => onDocumentNameChange(e.target.value)}
 					/>
 					<TextField
 						fullWidth
-						label="Institution Name"
+						label="Issuer (wallet address or Sepolia ENS)"
+						placeholder="0x… or name.eth"
 						variant="outlined"
-						value={institutionName}
-						onChange={(e) => onInstitutionNameChange(e.target.value)}
+						value={issuerIdentity}
+						onChange={(e) => onIssuerIdentityChange(e.target.value)}
+						helperText="Defaults from your connected wallet; edit to use ENS or another address."
 					/>
 					<TextField
 						fullWidth
-						label="Recipient Name"
+						label="Recipient (wallet address or Sepolia ENS)"
+						placeholder="0x… or name.eth"
 						variant="outlined"
-						value={recipientName}
-						onChange={(e) => onRecipientNameChange(e.target.value)}
+						value={recipientIdentity}
+						onChange={(e) => onRecipientIdentityChange(e.target.value)}
 					/>
 
 					<IssuePdfDropZone
@@ -113,6 +109,11 @@ export default function IssueFormCard(props: IssueFormCardProps) {
 					) : null}
 
 					{hashHex ? <IssueHashPreview hashHex={hashHex} /> : null}
+
+					<Typography variant="caption" color="text.secondary">
+						The SHA-256 hash above is the only fingerprint sent to Hedera with issuer, recipient,
+						and document name — the PDF never leaves your browser.
+					</Typography>
 
 					<IssueNotarizeButton
 						walletConnected={walletConnected}

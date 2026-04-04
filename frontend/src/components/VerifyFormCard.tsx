@@ -1,4 +1,12 @@
-import { Card, CardContent, Stack, Typography, useTheme } from "@mui/material";
+import {
+	Card,
+	CardContent,
+	FormControlLabel,
+	Stack,
+	Switch,
+	Typography,
+	useTheme,
+} from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { scaleFadeUp } from "../utils/homeMotion";
 import type { VerifyApiResponse } from "../utils/verifyApi";
@@ -18,6 +26,8 @@ export type VerifyFormCardProps = {
 	showResult: boolean;
 	verifyError: string | null;
 	result: VerifyApiResponse | null;
+	showSepoliaEns: boolean;
+	onShowSepoliaEnsChange: (value: boolean) => void;
 };
 
 export default function VerifyFormCard(props: VerifyFormCardProps) {
@@ -33,6 +43,8 @@ export default function VerifyFormCard(props: VerifyFormCardProps) {
 		showResult,
 		verifyError,
 		result,
+		showSepoliaEns,
+		onShowSepoliaEnsChange,
 	} = props;
 
 	const canVerify = Boolean(hashHex) && !hashing && !verifying;
@@ -68,6 +80,17 @@ export default function VerifyFormCard(props: VerifyFormCardProps) {
 
 					{hashHex ? <IssueHashPreview hashHex={hashHex} /> : null}
 
+					<FormControlLabel
+						control={
+							<Switch
+								checked={showSepoliaEns}
+								onChange={(_, c) => onShowSepoliaEnsChange(c)}
+								color="primary"
+							/>
+						}
+						label="Show Sepolia ENS (issuer & recipient reverse lookup)"
+					/>
+
 					<VerifySubmitButton
 						disabled={!canVerify}
 						loading={verifying}
@@ -78,6 +101,7 @@ export default function VerifyFormCard(props: VerifyFormCardProps) {
 						open={showResult}
 						errorMessage={verifyError}
 						result={verifyError ? null : result}
+						showSepoliaEns={showSepoliaEns}
 					/>
 				</Stack>
 			</CardContent>

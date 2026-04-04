@@ -1,11 +1,13 @@
 import { API_BASE_URL } from "./api";
 
 export type IssueApiRequest = {
+	/** SHA-256 hex of the PDF (computed in the browser; same value anchored on Hedera). */
 	hash: string;
-	issuerName: string;
+	documentName: string;
 	issuerAddress: string;
-	documentType: string;
-	recipientName: string;
+	recipientAddress: string;
+	issuerEns?: string;
+	recipientEns?: string;
 };
 
 export type IssueApiResult = {

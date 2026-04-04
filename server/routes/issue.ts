@@ -1,14 +1,16 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { getAddress, isAddress } from 'ethers';
 import { submitDocumentHash } from '../lib/hedera';
 
 const router = Router();
 
 interface IssueRequestBody {
   hash: string;
-  issuerName: string;
+  documentName: string;
   issuerAddress: string;
-  documentType: string;
-  recipientName: string;
+  recipientAddress: string;
+  issuerEns?: string;
+  recipientEns?: string;
 }
 
 /**
@@ -18,10 +20,12 @@ interface IssueRequestBody {
  */
 router.post('/', async (req: Request<{}, {}, IssueRequestBody>, res: Response, next: NextFunction) => {
   try {
-    const { hash, issuerName, issuerAddress, documentType, recipientName } = req.body;
+    const { hash, documentName, issuerAddress, recipientAddress, issuerEns, recipientEns } = req.body;
 
-    if (!hash || !issuerName || !issuerAddress || !documentType || !recipientName) {
-      res.status(400).json({ error: 'hash, issuerName, issuerAddress, documentType, and recipientName are required' });
+    if (!hash || !documentName || !issuerAddress || !recipientAddress) {
+      res.status(400).json({
+        error: 'hash, documentName, issuerAddress, and recipientAddress are required',
+      });
       return;
     }
 
@@ -30,14 +34,22 @@ router.post('/', async (req: Request<{}, {}, IssueRequestBody>, res: Response, n
       return;
     }
 
-    if (!/^0x[0-9a-f]{40}$/i.test(issuerAddress)) {
-      res.status(400).json({ error: 'issuerAddress must be a valid EVM address' });
+    if (!isAddress(issuerAddress) || !isAddress(recipientAddress)) {
+      res.status(400).json({ error: 'issuerAddress and recipientAddress must be valid EVM addresses' });
       return;
     }
 
     const topicId = process.env.HEDERA_TOPIC_ID ?? '';
 
-    const result = await submitDocumentHash({ documentHash: hash, issuerName, issuerAddress, documentType, recipientName });
+    const result = await submitDocumentHash({
+      documentHash: hash,
+      documentName: documentName.trim(),
+      issuerAddress: getAddress(issuerAddress),
+      recipientAddress: getAddress(recipientAddress),
+      issuerEns: typeof issuerEns === 'string' && issuerEns.trim() !== '' ? issuerEns.trim() : undefined,
+      recipientEns:
+        typeof recipientEns === 'string' && recipientEns.trim() !== '' ? recipientEns.trim() : undefined,
+    });
 
     res.json({
       success: true,
