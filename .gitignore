@@ -1,19 +1,26 @@
 # Dependencies
 node_modules/
+frontend/node_modules/
 .pnp
 .pnp.js
 
 # Vite / React build output
 dist/
+frontend/dist/
 out/
+frontend/out/
 
 # Environment variables
 .env
 .env.local
 .env.*.local
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
 
 # Hedera
 *.pem
+frontend/*.pem
 
 # Debug
 npm-debug.log*
@@ -35,4 +42,5 @@ Thumbs.db
 
 # Misc
 .vercel
+frontend/.vercel
 coverage/
