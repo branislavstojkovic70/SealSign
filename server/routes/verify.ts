@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { verifyDocumentWithCRE } from '../lib/cre';
+import { logVerificationAttempt } from '../lib/hedera';
 
 const router = Router();
 
@@ -26,6 +27,15 @@ router.post('/', async (req: Request<{}, {}, VerifyRequestBody>, res: Response) 
   }
 
   const result = await verifyDocumentWithCRE(hash);
+
+  // Fire-and-forget audit log — never blocks the response
+  logVerificationAttempt({
+    hash,
+    verified: result.verified,
+    issuer: result.issuer,
+    documentType: result.documentType,
+    timestamp: new Date().toISOString(),
+  }).catch((err) => console.error('[audit] HCS log failed:', err));
 
   if (!result.verified) {
     res.json({

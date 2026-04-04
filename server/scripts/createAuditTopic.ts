@@ -1,0 +1,42 @@
+/**
+ * One-time setup: creates the Hedera HCS topic used as the SealSign verification audit log.
+ * Separate from the document registry topic so both streams are independently queryable.
+ * Run once, then copy the printed TopicId into your .env as HEDERA_AUDIT_TOPIC_ID.
+ *
+ * Usage (from server/): npx tsx scripts/createAuditTopic.ts
+ */
+
+import 'dotenv/config';
+import { Client, PrivateKey, TopicCreateTransaction } from '@hashgraph/sdk';
+
+async function main() {
+  const accountId = process.env.HEDERA_ACCOUNT_ID;
+  const privateKey = process.env.HEDERA_PRIVATE_KEY;
+
+  if (!accountId || !privateKey) {
+    throw new Error('HEDERA_ACCOUNT_ID and HEDERA_PRIVATE_KEY must be set in .env');
+  }
+
+  const trimmed = privateKey.trim().replace(/^0x/, '');
+  const key = trimmed.startsWith('302e') || trimmed.startsWith('302a')
+    ? PrivateKey.fromStringED25519(trimmed)
+    : PrivateKey.fromStringECDSA(trimmed);
+
+  const client = Client.forTestnet();
+  client.setOperator(accountId, key);
+
+  const receipt = await new TopicCreateTransaction()
+    .setTopicMemo('SealSign Verification Audit Log')
+    .setAdminKey(key)
+    .execute(client)
+    .then((tx) => tx.getReceipt(client));
+
+  const topicId = receipt.topicId?.toString();
+  console.log(`\n✅ Hedera HCS audit topic created: ${topicId}`);
+  console.log(`\nAdd to your .env:\n  HEDERA_AUDIT_TOPIC_ID=${topicId}\n`);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

@@ -4,6 +4,14 @@ import {
   TopicMessageSubmitTransaction,
 } from '@hashgraph/sdk';
 
+export interface AuditRecord {
+  hash: string;
+  verified: boolean;
+  issuer: string | null;
+  documentType: string | null;
+  timestamp: string;
+}
+
 export interface DocumentRecord {
   hash: string;
   issuer: string;
@@ -126,4 +134,22 @@ export async function fetchTopicMessages(): Promise<TopicMessage[]> {
       document,
     };
   });
+}
+
+/**
+ * Logs a verification attempt to the HCS audit topic.
+ * Uses a separate topic (HEDERA_AUDIT_TOPIC_ID) so the document registry
+ * and the audit trail are distinct, independently queryable HCS streams.
+ * Fire-and-forget — a logging failure must never block the verify response.
+ */
+export async function logVerificationAttempt(record: AuditRecord): Promise<void> {
+  const auditTopicId = process.env.HEDERA_AUDIT_TOPIC_ID;
+  if (!auditTopicId) return; // audit topic is optional; skip silently if not configured
+
+  const client = buildClient();
+
+  await new TopicMessageSubmitTransaction()
+    .setTopicId(auditTopicId)
+    .setMessage(JSON.stringify(record))
+    .execute(client);
 }
