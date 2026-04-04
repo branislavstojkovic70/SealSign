@@ -9,6 +9,7 @@ import Navbar from "./components/navbar";
 import HomePage from "./pages/HomePage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import IssuePage from "./pages/IssuePage";
+import VerifyPage from "./pages/VerifyPage";
 
 const router = createBrowserRouter([
 	{
@@ -17,7 +18,7 @@ const router = createBrowserRouter([
 		children: [
 			{ index: true, element: <HomePage /> },
 			{ path: "issue", element: <IssuePage /> },
-			{ path: "verify", element: <PlaceholderPage title="Verify" /> },
+			{ path: "verify", element: <VerifyPage /> },
 			{ path: "archive", element: <PlaceholderPage title="Archive" /> },
 		],
 	},
