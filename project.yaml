@@ -1,0 +1,28 @@
+# ==========================================================================
+# CRE PROJECT SETTINGS FILE
+# ==========================================================================
+# Project-specific settings for CRE CLI targets.
+# Each target defines account and rpcs groups.
+#
+# Usage:
+#   cre workflow simulate server/cre --target staging
+#   cre workflow build    server/cre
+#   cre workflow deploy   server/cre --target production
+
+# ==========================================================================
+staging:
+  rpcs:
+    - chain-name: ethereum-testnet-sepolia
+      url: https://ethereum-sepolia-rpc.publicnode.com
+    - chain-name: ethereum-mainnet
+      url: https://eth.blockrazor.xyz
+
+# ==========================================================================
+production:
+  account:
+    workflow-owner-address: "" # your EVM address — run: cre account link-key
+  rpcs:
+    - chain-name: ethereum-testnet-sepolia
+      url: https://ethereum-sepolia-rpc.publicnode.com
+    - chain-name: ethereum-mainnet
+      url: https://eth.blockrazor.xyz

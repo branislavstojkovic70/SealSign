@@ -1,0 +1,28 @@
+# ==========================================================================
+# CRE WORKFLOW SETTINGS FILE
+# ==========================================================================
+# Workflow-specific settings for CRE CLI targets.
+# Each target defines user-workflow and workflow-artifacts groups.
+#
+# Simulate: cre workflow simulate server/cre --target staging-settings \
+#             --http-payload '{"hash":"<sha256-hex>"}'
+# Deploy:   cre workflow deploy server/cre --target production-settings
+#           (requires CRE Early Access + funded Sepolia wallet)
+
+# ==========================================================================
+staging:
+  user-workflow:
+    workflow-name: "sealsign-verify-document-staging"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.staging.json"
+    secrets-path: ""
+
+# ==========================================================================
+production:
+  user-workflow:
+    workflow-name: "sealsign-verify-document"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.production.json"
+    secrets-path: ""
