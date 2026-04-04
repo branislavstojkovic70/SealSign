@@ -1,14 +1,18 @@
-import { Box, Collapse, Typography, useTheme } from "@mui/material";
+import { Box, Collapse, Link, Typography, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 
 type IssueSuccessCollapseProps = {
 	open: boolean;
-	txId: string | null;
+	transactionId: string | null;
+	sequenceNumber: number | null;
+	explorerUrl: string | null;
 };
 
 export default function IssueSuccessCollapse({
 	open,
-	txId,
+	transactionId,
+	sequenceNumber,
+	explorerUrl,
 }: IssueSuccessCollapseProps) {
 	const theme = useTheme();
 	return (
@@ -28,12 +32,17 @@ export default function IssueSuccessCollapse({
 					fontWeight={700}
 					sx={{ mb: 1 }}
 				>
-					Submitted to Hedera (simulated)
+					Submitted to Hedera HCS
 				</Typography>
 				<Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-					Your document hash is queued for consensus. Save this transaction ID for
+					Your document hash has reached consensus. Save this transaction ID for
 					your records.
 				</Typography>
+				{sequenceNumber !== null && (
+					<Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+						Sequence #{sequenceNumber}
+					</Typography>
+				)}
 				<Typography
 					variant="body2"
 					sx={{
@@ -41,10 +50,22 @@ export default function IssueSuccessCollapse({
 						fontSize: "0.8rem",
 						wordBreak: "break-all",
 						color: theme.palette.text.primary,
+						mb: explorerUrl ? 1 : 0,
 					}}
 				>
-					{txId}
+					{transactionId}
 				</Typography>
+				{explorerUrl && (
+					<Link
+						href={explorerUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						variant="body2"
+						color="success.main"
+					>
+						View on HashScan ↗
+					</Link>
+				)}
 			</Box>
 		</Collapse>
 	);
