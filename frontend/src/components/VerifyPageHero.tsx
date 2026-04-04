@@ -23,7 +23,8 @@ export default function VerifyPageHero() {
 				flexWrap="wrap"
 				justifyContent="center"
 				gap={1}
-				sx={{ mb: 0.75, width: "100%" }}
+				sx={{ width: "100%" }}
+				mt = {3}
 			>
 				<Chip
 					label="Hedera HCS · registry"
@@ -46,7 +47,7 @@ export default function VerifyPageHero() {
 				variant="h4"
 				component="h1"
 				sx={{
-					mb: 1.25,
+					mt: { xs: 2, sm: 2.5 },
 					fontWeight: 700,
 					letterSpacing: "-0.02em",
 					color: theme.palette.text.primary,
@@ -61,13 +62,14 @@ export default function VerifyPageHero() {
 				variant="body2"
 				color="text.secondary"
 				sx={{
-					mb: 2,
+					mt: { xs: 1.5, sm: 2 },
 					maxWidth: 440,
 					mx: "auto",
 					lineHeight: 1.6,
 					opacity: 0,
 					animation: `${fadeUp} 0.7s 0.12s cubic-bezier(0.22, 1, 0.36, 1) forwards`,
 				}}
+				mb = {2}
 			>
 				Hash the PDF in your browser, then we check the mirror record through the same
 				CRE path as production.

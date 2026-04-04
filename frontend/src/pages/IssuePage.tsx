@@ -1,4 +1,4 @@
-import { Grid } from "@mui/material";
+import { Box, Grid } from "@mui/material";
 import { useCallback, useState } from "react";
 import HomeShell from "../components/HomeShell";
 import PageScrollArea from "../components/PageScrollArea";
@@ -63,23 +63,32 @@ export default function IssuePage() {
 					}}
 				>
 					<IssuePageHero />
-					<IssueFormCard
-						documentName={documentName}
-						institutionName={institutionName}
-						recipientName={recipientName}
-						onDocumentNameChange={setDocumentName}
-						onInstitutionNameChange={setInstitutionName}
-						onRecipientNameChange={setRecipientName}
-						hashing={hashing}
-						fileLabel={fileLabel}
-						hashError={hashError}
-						hashHex={hashHex}
-						onPickFile={(f) => void processFile(f)}
-						canNotarize={canNotarize}
-						onNotarize={handleNotarize}
-						success={success}
-						txId={txId}
-					/>
+					<Box
+						sx={{
+							mt: { xs: 3, sm: 4 },
+							width: "100%",
+							display: "flex",
+							justifyContent: "center",
+						}}
+					>
+						<IssueFormCard
+							documentName={documentName}
+							institutionName={institutionName}
+							recipientName={recipientName}
+							onDocumentNameChange={setDocumentName}
+							onInstitutionNameChange={setInstitutionName}
+							onRecipientNameChange={setRecipientName}
+							hashing={hashing}
+							fileLabel={fileLabel}
+							hashError={hashError}
+							hashHex={hashHex}
+							onPickFile={(f) => void processFile(f)}
+							canNotarize={canNotarize}
+							onNotarize={handleNotarize}
+							success={success}
+							txId={txId}
+						/>
+					</Box>
 				</Grid>
 			</HomeShell>
 		</PageScrollArea>

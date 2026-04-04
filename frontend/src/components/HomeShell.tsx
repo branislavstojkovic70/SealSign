@@ -11,8 +11,8 @@ type HomeShellProps = {
 
 export default function HomeShell({ children, dense = false }: HomeShellProps) {
 	const theme = useTheme();
-	const py = dense ? { xs: 1.5, md: 2 } : { xs: 5, md: 8 };
-	const gridSpacing = dense ? { xs: 2, md: 2.5 } : { xs: 4, md: 5 };
+	const py = dense ? undefined : { xs: 5, md: 8 };
+	const gridSpacing = dense ? 0 : { xs: 4, md: 5 };
 	return (
 		<Box
 			sx={{
@@ -23,8 +23,12 @@ export default function HomeShell({ children, dense = false }: HomeShellProps) {
 				overflowX: "hidden",
 				overflowY: "visible",
 				backgroundColor: theme.palette.background.default,
-				py,
-				pb: dense ? { xs: 3, md: 4 } : undefined,
+				...(dense
+					? {
+							pt: { xs: 2, sm: 2.5, md: 3 },
+							pb: { xs: 4, sm: 5, md: 6 },
+						}
+					: { py }),
 			}}
 		>
 			<Box

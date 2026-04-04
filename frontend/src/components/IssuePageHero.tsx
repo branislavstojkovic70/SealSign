@@ -11,7 +11,7 @@ export default function IssuePageHero() {
 				flexWrap="wrap"
 				justifyContent="center"
 				gap={1}
-				sx={{ mb: 0.75, width: "100%" }}
+				sx={{ width: "100%" }}
 			>
 				<Chip
 					label="Hedera HCS · issuance"
@@ -35,7 +35,7 @@ export default function IssuePageHero() {
 				variant="h4"
 				component="h1"
 				sx={{
-					mb: 1.25,
+					mt: { xs: 2, sm: 2.5 },
 					fontWeight: 700,
 					letterSpacing: "-0.02em",
 					color: theme.palette.text.primary,
