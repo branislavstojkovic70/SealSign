@@ -7,6 +7,7 @@ import {
 export interface DocumentRecord {
   hash: string;
   issuer: string;
+  issuerAddress: string;
   type: string;
   recipient: string;
   issuedAt: string;
@@ -61,6 +62,7 @@ function buildClient(): Client {
 export async function submitDocumentHash(params: {
   documentHash: string;
   issuerName: string;
+  issuerAddress: string;
   documentType: string;
   recipientName: string;
 }): Promise<{ transactionId: string; sequenceNumber: number; timestamp: string }> {
@@ -70,6 +72,7 @@ export async function submitDocumentHash(params: {
   const payload: DocumentRecord = {
     hash: params.documentHash,
     issuer: params.issuerName,
+    issuerAddress: params.issuerAddress,
     type: params.documentType,
     recipient: params.recipientName,
     issuedAt: new Date().toISOString(),
@@ -97,7 +100,6 @@ export interface AuditRecord {
   hash: string;
   verified: boolean;
   timestamp: string;
-  ip?: string;
 }
 
 /**

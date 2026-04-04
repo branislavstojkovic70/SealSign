@@ -11,7 +11,7 @@ import { postIssue } from "../utils/issueApi";
 import type { IssueApiResult } from "../utils/issueApi";
 
 export default function IssuePage() {
-	const { isConnected } = useAppKitAccount();
+	const { isConnected, address } = useAppKitAccount();
 	const [documentName, setDocumentName] = useState("");
 	const [institutionName, setInstitutionName] = useState("");
 	const [recipientName, setRecipientName] = useState("");
@@ -55,6 +55,7 @@ export default function IssuePage() {
 			const result = await postIssue({
 				hash: hashHex,
 				issuerName: institutionName,
+				issuerAddress: address ?? '',
 				documentType: documentName,
 				recipientName,
 			});

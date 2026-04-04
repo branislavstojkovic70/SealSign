@@ -48,3 +48,6 @@ Thumbs.db
 .vercel
 frontend/.vercel
 coverage/
+
+# Local notes
+TODO.md
