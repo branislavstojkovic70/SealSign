@@ -27,8 +27,12 @@ export type IssueFormCardProps = {
 	onPickFile: (file: File | undefined) => void;
 	canNotarize: boolean;
 	onNotarize: () => void;
+	submitting: boolean;
 	success: boolean;
-	txId: string | null;
+	transactionId: string | null;
+	sequenceNumber: number | null;
+	explorerUrl: string | null;
+	issueError: string | null;
 };
 
 export default function IssueFormCard(props: IssueFormCardProps) {
@@ -47,8 +51,12 @@ export default function IssueFormCard(props: IssueFormCardProps) {
 		onPickFile,
 		canNotarize,
 		onNotarize,
+		submitting,
 		success,
-		txId,
+		transactionId,
+		sequenceNumber,
+		explorerUrl,
+		issueError,
 	} = props;
 
 	return (
@@ -104,9 +112,23 @@ export default function IssueFormCard(props: IssueFormCardProps) {
 
 					{hashHex ? <IssueHashPreview hashHex={hashHex} /> : null}
 
-					<IssueNotarizeButton disabled={!canNotarize} onClick={onNotarize} />
+					<IssueNotarizeButton
+						disabled={!canNotarize || submitting}
+						onClick={onNotarize}
+					/>
 
-					<IssueSuccessCollapse open={success} txId={txId} />
+					{issueError && (
+						<Typography variant="caption" color="error">
+							{issueError}
+						</Typography>
+					)}
+
+					<IssueSuccessCollapse
+						open={success}
+						transactionId={transactionId}
+						sequenceNumber={sequenceNumber}
+						explorerUrl={explorerUrl}
+					/>
 				</Stack>
 			</CardContent>
 		</Card>

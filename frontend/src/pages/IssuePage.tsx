@@ -5,7 +5,9 @@ import PageScrollArea from "../components/PageScrollArea";
 import IssuePageHero from "../components/IssuePageHero";
 import IssueFormCard from "../components/IssueFormCard";
 import { sha256HexFromFile } from "../utils/hashFile";
-import { isPdfFile, randomHederaStyleTxId } from "../utils/issueHelpers";
+import { isPdfFile } from "../utils/issueHelpers";
+import { postIssue } from "../utils/issueApi";
+import type { IssueApiResult } from "../utils/issueApi";
 
 export default function IssuePage() {
 	const [documentName, setDocumentName] = useState("");
@@ -15,14 +17,15 @@ export default function IssuePage() {
 	const [hashHex, setHashHex] = useState<string | null>(null);
 	const [hashError, setHashError] = useState<string | null>(null);
 	const [hashing, setHashing] = useState(false);
-	const [success, setSuccess] = useState(false);
-	const [txId, setTxId] = useState<string | null>(null);
+	const [submitting, setSubmitting] = useState(false);
+	const [issueError, setIssueError] = useState<string | null>(null);
+	const [issueResult, setIssueResult] = useState<IssueApiResult | null>(null);
 
 	const processFile = useCallback(async (file: File | undefined) => {
 		if (!file) return;
 		setHashError(null);
-		setSuccess(false);
-		setTxId(null);
+		setIssueError(null);
+		setIssueResult(null);
 		if (!isPdfFile(file)) {
 			setFileLabel(null);
 			setHashHex(null);
@@ -42,12 +45,27 @@ export default function IssuePage() {
 		}
 	}, []);
 
-	const handleNotarize = () => {
-		setTxId(randomHederaStyleTxId());
-		setSuccess(true);
+	const handleNotarize = async () => {
+		if (!hashHex) return;
+		setIssueError(null);
+		setSubmitting(true);
+		try {
+			const result = await postIssue({
+				hash: hashHex,
+				issuerName: institutionName,
+				documentType: documentName,
+				recipientName,
+			});
+			setIssueResult(result);
+		} catch (err) {
+			setIssueError(err instanceof Error ? err.message : "Submission failed.");
+		} finally {
+			setSubmitting(false);
+		}
 	};
 
-	const canNotarize = Boolean(hashHex) && !hashing && !success;
+	const canNotarize =
+		Boolean(hashHex) && !hashing && !submitting && !issueResult;
 
 	return (
 		<PageScrollArea>
@@ -84,9 +102,13 @@ export default function IssuePage() {
 							hashHex={hashHex}
 							onPickFile={(f) => void processFile(f)}
 							canNotarize={canNotarize}
-							onNotarize={handleNotarize}
-							success={success}
-							txId={txId}
+							onNotarize={() => void handleNotarize()}
+							submitting={submitting}
+							success={Boolean(issueResult)}
+							transactionId={issueResult?.transactionId ?? null}
+							sequenceNumber={issueResult?.sequenceNumber ?? null}
+							explorerUrl={issueResult?.explorerUrl ?? null}
+							issueError={issueError}
 						/>
 					</Box>
 				</Grid>
