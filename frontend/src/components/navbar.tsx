@@ -10,8 +10,8 @@ import {
 	ListItemText,
 	Toolbar,
 	Typography,
-	useTheme,
 	useMediaQuery,
+	useTheme,
 } from "@mui/material";
 import { Outlet, useNavigate } from "react-router-dom";
 import { GppGood, UploadFile, ManageSearch, History, Menu } from "@mui/icons-material";
@@ -35,10 +35,12 @@ export default function Navbar() {
 	return (
 		<Box
 			sx={{
-				height: "100%",
+				flex: "1 1 0%",
+				minHeight: 0,
 				width: "100%",
 				display: "flex",
 				flexDirection: "column",
+				overflow: "hidden",
 			}}
 		>
 			<AppBar position="relative" sx={{ flex: "0 1 auto" }}>
@@ -154,9 +156,20 @@ export default function Navbar() {
 				</Box>
 			</Drawer>
 
-			<div id="detail" style={{ flex: "1 1 auto", width: "100%" }}>
+			<Box
+				id="detail"
+				component="main"
+				sx={{
+					flex: "1 1 0%",
+					minHeight: 0,
+					width: "100%",
+					display: "flex",
+					flexDirection: "column",
+					overflow: "hidden",
+				}}
+			>
 				<Outlet />
-			</div>
+			</Box>
 		</Box>
 	);
 }

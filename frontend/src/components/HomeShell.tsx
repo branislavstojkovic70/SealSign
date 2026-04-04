@@ -5,20 +5,26 @@ import { haloPulse } from "../utils/homeMotion";
 
 type HomeShellProps = {
 	children: ReactNode;
+	/** Tighter top spacing for long forms (Issue / Verify). */
+	dense?: boolean;
 };
 
-export default function HomeShell({ children }: HomeShellProps) {
+export default function HomeShell({ children, dense = false }: HomeShellProps) {
 	const theme = useTheme();
+	const py = dense ? { xs: 1.5, md: 2 } : { xs: 5, md: 8 };
+	const gridSpacing = dense ? { xs: 2, md: 2.5 } : { xs: 4, md: 5 };
 	return (
 		<Box
-			component="main"
 			sx={{
 				position: "relative",
 				flex: 1,
 				width: "100%",
-				overflow: "hidden",
+				minHeight: "min-content",
+				overflowX: "hidden",
+				overflowY: "visible",
 				backgroundColor: theme.palette.background.default,
-				py: { xs: 5, md: 8 },
+				py,
+				pb: dense ? { xs: 3, md: 4 } : undefined,
 			}}
 		>
 			<Box
@@ -61,7 +67,7 @@ export default function HomeShell({ children }: HomeShellProps) {
 			>
 				<Grid
 					container
-					spacing={{ xs: 4, md: 5 }}
+					spacing={gridSpacing}
 					direction="column"
 					sx={{ width: "100%", maxWidth: 920, alignItems: "center" }}
 				>
