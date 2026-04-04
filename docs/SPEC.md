@@ -196,20 +196,29 @@ VITE_API_URL=http://localhost:3001
 
 ---
 
-## Detailed Component Specifications
+## Frontend Specifications
 
-### `scripts/createTopic.ts` — One-Time Setup
+> Lives in `src/`. Runs on **port 5173** (Vite). No secrets — only `VITE_` env vars reach the browser.
 
-Creates a single Hedera Consensus Service (HCS) Topic as the immutable document registry.
+### `src/main.tsx` — Entry Point
 
-1. Initialize `Client.forTestnet()` with Issuer credentials.
-2. Create a new Topic via `new TopicCreateTransaction()`.
-3. Set memo: `"SealSign Document Registry"`.
-4. Set admin key to the Issuer's key.
-5. Execute and log the `TopicId`.
-6. Copy TopicId into `.env.local`.
+```tsx
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode><App /></React.StrictMode>
+)
+```
 
----
+### `src/App.tsx` — Router
+
+```tsx
+<BrowserRouter>
+  <Routes>
+    <Route path="/"       element={<HomePage />} />
+    <Route path="/issue"  element={<IssuePage />} />
+    <Route path="/verify" element={<VerifyPage />} />
+  </Routes>
+</BrowserRouter>
+```
 
 ### `src/lib/hash.ts` — Browser SHA-256 Hashing
 
@@ -220,18 +229,74 @@ async function hashFile(file: File): Promise<string>
 // Uses crypto.subtle.digest('SHA-256', buffer), returns hex string
 ```
 
+### `src/lib/ens.ts` — ENS Resolution (Sepolia)
+
+```ts
+async function resolveENSName(name: string): Promise<string | null>
+async function lookupENSAddress(address: string): Promise<string | null>
+```
+
+Use `ethers.JsonRpcProvider` pointed at `VITE_SEPOLIA_RPC_URL`. Hardcode a fallback mapping for demo: `{ "0xABC...": "belgrade-university.eth" }`.
+
+### `src/lib/walletconnect-pay.ts` — Payment Gate
+
+```ts
+async function requestVerificationPayment(): Promise<{ success: boolean; txHash: string }>
+```
+
+Flow: drop PDF → hash computed → "Pay to Verify" button → wallet confirmation → CRE verification triggers.
+
+### `src/config/appkit.ts` — Reown AppKit
+
+Initialises Reown AppKit with `VITE_REOWN_PROJECT_ID` and the chain definitions from `src/config/chains.ts`.
+
+### Pages & Components
+
+| Path | Purpose |
+|------|---------|
+| `src/pages/HomePage.tsx` | Landing — explains the product, links to Issue / Verify |
+| `src/pages/IssuePage.tsx` | Renders `<IssueForm>` and `<IssueResult>` |
+| `src/pages/VerifyPage.tsx` | Renders `<DropZone>`, `<PayGate>`, `<VerifyResult>` |
+| `src/components/layout/Header.tsx` | Nav bar with wallet connect button |
+| `src/components/issue/IssueForm.tsx` | Form: doc name, issuer, file upload → POST /api/issue |
+| `src/components/issue/IssueResult.tsx` | Success screen with Hedera tx link |
+| `src/components/verify/DropZone.tsx` | Drag & drop PDF zone — computes hash client-side |
+| `src/components/verify/PayGate.tsx` | WalletConnect Pay confirmation step |
+| `src/components/verify/VerifyResult.tsx` | GREEN shield (verified) or RED alert (tampered) |
+| `src/components/ens/ENSBadge.tsx` | Resolves and displays ENS name for an issuer address |
+
 ---
+
+## Backend Specifications
+
+> Lives in `server/`. Runs on **port 3001** (Express). Holds all secrets — never imports from `src/`.
+
+### `server/index.ts` — Express Entry Point
+
+```ts
+import express from 'express'
+import cors from 'cors'
+import issueRouter from './routes/issue'
+import verifyRouter from './routes/verify'
+import hederaRouter from './routes/hedera'
+
+const app = express()
+app.use(cors({ origin: 'http://localhost:5173' }))
+app.use(express.json())
+app.use('/api/issue',            issueRouter)
+app.use('/api/verify',           verifyRouter)
+app.use('/api/hedera/messages',  hederaRouter)
+app.listen(3001)
+```
 
 ### `server/lib/hash.ts` — Server SHA-256 Hashing
 
-Must produce identical output to the browser version for the same input.
+Must produce identical hex output to the browser version for the same bytes.
 
 ```ts
 function hashBuffer(buffer: Buffer): string
 // Uses crypto.createHash('sha256').update(buffer).digest('hex')
 ```
-
----
 
 ### `server/lib/hedera.ts` — Hedera HCS Functions
 
@@ -258,8 +323,6 @@ const decoded = Buffer.from(msg.message, 'base64').toString('utf-8');
 const parsed = JSON.parse(decoded);
 ```
 
----
-
 ### `server/lib/cre.ts` — Chainlink CRE Integration
 
 CRE acts as the autonomous verification judge inside a Confidential Compute environment.
@@ -276,9 +339,7 @@ async function verifyDocumentWithCRE(uploadedHash: string): Promise<{
 
 **Fallback approach (if CRE SDK is not cooperating):** implement the same logic directly in `server/routes/verify.ts` and frame it as: *"Designed to run inside Chainlink CRE Confidential Compute; running server-side for the demo."*
 
----
-
-### `cre/workflow.ts` — Chainlink CRE Workflow
+### `cre/workflow.ts` — Chainlink CRE Workflow Definition
 
 ```
 WORKFLOW: VerifyDocument
@@ -291,32 +352,21 @@ WORKFLOW: VerifyDocument
 
 Mark workflow as `confidential: true` for the Privacy bounty.
 
----
+### `scripts/createTopic.ts` — One-Time Setup
 
-### `src/lib/ens.ts` — ENS Resolution (Sepolia)
+Creates the Hedera HCS Topic used as the document registry.
 
-```ts
-async function resolveENSName(name: string): Promise<string | null>
-async function lookupENSAddress(address: string): Promise<string | null>
-```
-
-Use `ethers.JsonRpcProvider` on Sepolia. Hardcode a fallback mapping for demo: `{ "0xABC...": "belgrade-university.eth" }`.
-
----
-
-### `src/lib/walletconnect-pay.ts` — Payment Gate
-
-```ts
-async function requestVerificationPayment(): Promise<{ success: boolean; txHash: string }>
-```
-
-Flow: drop PDF → hash computed → "Pay to Verify" button → wallet confirmation → CRE verification triggers.
+1. Initialize `Client.forTestnet()` with issuer credentials from `.env`.
+2. Create topic via `new TopicCreateTransaction()`, memo `"SealSign Document Registry"`.
+3. Set admin key to the issuer's key.
+4. Execute and log the `TopicId`.
+5. Copy `TopicId` into `.env` as `HEDERA_TOPIC_ID`.
 
 ---
 
-## API Routes
+## API Contract
 
-All routes served by the Express backend at `http://localhost:3001`. The Vite dev server proxies `/api/*` to it so the React app can use relative `/api/...` paths.
+All routes are on the Express backend (`http://localhost:3001`). The Vite dev server proxies `/api/*` to it — the React app always calls relative `/api/...` paths.
 
 ### `POST /api/issue`
 ```json
