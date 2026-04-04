@@ -14,8 +14,10 @@ import {
 	useMediaQuery,
 } from "@mui/material";
 import { Outlet, useNavigate } from "react-router-dom";
-import { GppGood, UploadFile, ManageSearch, History, Menu, Logout } from "@mui/icons-material";
+import { GppGood, UploadFile, ManageSearch, History, Menu } from "@mui/icons-material";
 import { useState } from "react";
+import WalletButton from "./WalletButton";
+
 export default function Navbar() {
 	const navigate = useNavigate();
 	const theme = useTheme();
@@ -105,15 +107,7 @@ export default function Navbar() {
 								<Menu />
 							</IconButton>
 						) : (
-							<Button
-								startIcon={<Logout />}
-								sx={{
-									color: "#F5F5F5",
-									textTransform: "capitalize",
-								}}
-							>
-								Logout
-							</Button>
+							<WalletButton />
 						)}
 					</Box>
 				</Toolbar>
@@ -141,12 +135,8 @@ export default function Navbar() {
 								<ListItemText primary={item.label} />
 							</ListItem>
 						))}
-						{/* @ts-ignore */}
-						<ListItem button>
-							<ListItemIcon>
-								<Logout />
-							</ListItemIcon>
-							<ListItemText primary="Logout" />
+						<ListItem sx={{ justifyContent: "center", pt: 2 }}>
+							<WalletButton />
 						</ListItem>
 					</List>
 				</Box>
