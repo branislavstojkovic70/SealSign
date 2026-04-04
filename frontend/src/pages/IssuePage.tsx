@@ -1,5 +1,6 @@
 import { Box, Grid } from "@mui/material";
 import { useCallback, useState } from "react";
+import { useAppKitAccount } from "@reown/appkit/react";
 import HomeShell from "../components/HomeShell";
 import PageScrollArea from "../components/PageScrollArea";
 import IssuePageHero from "../components/IssuePageHero";
@@ -10,6 +11,7 @@ import { postIssue } from "../utils/issueApi";
 import type { IssueApiResult } from "../utils/issueApi";
 
 export default function IssuePage() {
+	const { isConnected } = useAppKitAccount();
 	const [documentName, setDocumentName] = useState("");
 	const [institutionName, setInstitutionName] = useState("");
 	const [recipientName, setRecipientName] = useState("");
@@ -65,7 +67,14 @@ export default function IssuePage() {
 	};
 
 	const canNotarize =
-		Boolean(hashHex) && !hashing && !submitting && !issueResult;
+		isConnected &&
+		Boolean(hashHex) &&
+		documentName.trim() !== "" &&
+		institutionName.trim() !== "" &&
+		recipientName.trim() !== "" &&
+		!hashing &&
+		!submitting &&
+		!issueResult;
 
 	return (
 		<PageScrollArea>
@@ -101,6 +110,7 @@ export default function IssuePage() {
 							hashError={hashError}
 							hashHex={hashHex}
 							onPickFile={(f) => void processFile(f)}
+							walletConnected={isConnected}
 							canNotarize={canNotarize}
 							onNotarize={() => void handleNotarize()}
 							submitting={submitting}

@@ -25,6 +25,7 @@ export type IssueFormCardProps = {
 	hashError: string | null;
 	hashHex: string | null;
 	onPickFile: (file: File | undefined) => void;
+	walletConnected: boolean;
 	canNotarize: boolean;
 	onNotarize: () => void;
 	submitting: boolean;
@@ -49,6 +50,7 @@ export default function IssueFormCard(props: IssueFormCardProps) {
 		hashError,
 		hashHex,
 		onPickFile,
+		walletConnected,
 		canNotarize,
 		onNotarize,
 		submitting,
@@ -113,6 +115,7 @@ export default function IssueFormCard(props: IssueFormCardProps) {
 					{hashHex ? <IssueHashPreview hashHex={hashHex} /> : null}
 
 					<IssueNotarizeButton
+						walletConnected={walletConnected}
 						disabled={!canNotarize || submitting}
 						onClick={onNotarize}
 					/>

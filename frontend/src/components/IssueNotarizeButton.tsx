@@ -2,15 +2,21 @@ import { Button, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 
 type IssueNotarizeButtonProps = {
+	walletConnected: boolean;
 	disabled: boolean;
 	onClick: () => void;
 };
 
 export default function IssueNotarizeButton({
+	walletConnected,
 	disabled,
 	onClick,
 }: IssueNotarizeButtonProps) {
 	const theme = useTheme();
+	const label = !walletConnected
+		? "Connect Wallet to Notarize"
+		: "Notarize on Hedera";
+
 	return (
 		<Button
 			fullWidth
@@ -33,7 +39,7 @@ export default function IssueNotarizeButton({
 				},
 			}}
 		>
-			Notarize on Hedera
+			{label}
 		</Button>
 	);
 }
