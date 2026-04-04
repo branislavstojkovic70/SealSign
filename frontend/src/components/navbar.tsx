@@ -72,7 +72,19 @@ export default function Navbar() {
 							flex: "1 1 0%",
 						}}
 					>
-						<GppGood sx={{ fontSize: 32, color: theme.palette.primary.main }} />
+						<Box
+							component="img"
+							src={`${import.meta.env.BASE_URL}logo_light.png`}
+							alt=""
+							sx={{
+								height: { xs: 28, sm: 32 },
+								width: "auto",
+								maxWidth: 120,
+								objectFit: "contain",
+								display: "block",
+								flexShrink: 0,
+							}}
+						/>
 						<Typography
 							variant="h6"
 							sx={{ color: theme.palette.text.primary, fontWeight: 700 }}
