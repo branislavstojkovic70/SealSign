@@ -100,7 +100,6 @@ export interface AuditRecord {
   hash: string;
   verified: boolean;
   timestamp: string;
-  ip?: string;
 }
 
 /**

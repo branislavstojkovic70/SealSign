@@ -32,7 +32,6 @@ router.post('/', async (req: Request<{}, {}, VerifyRequestBody>, res: Response) 
     hash,
     verified: result.verified,
     timestamp: new Date().toISOString(),
-    ip: req.ip,
   });
 
   if (!result.verified) {
