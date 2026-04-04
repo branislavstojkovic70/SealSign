@@ -1,0 +1,51 @@
+# SealSign — Chainlink CRE Workflow Configuration
+#
+# Workflow: VerifyDocument
+# Trigger:  HTTP  (receives hash from Express /api/verify)
+# Privacy:  Confidential Compute — hash verified inside enclave, result signed
+#           by DON consensus before being returned to the caller.
+#
+# Simulate: cre workflow simulate . --target staging \
+#             --http-payload '{"hash":"<sha256-hex>"}'
+# Deploy:   cre workflow deploy . --target production
+#           (requires CRE Early Access + funded Sepolia wallet)
+
+spec_version: "1.0"
+
+name: verify-document
+description: >
+  Verifies a document SHA-256 hash against Hedera HCS records.
+  Runs inside Chainlink CRE Confidential Compute — the hash is
+  looked up via the Hedera Mirror Node and the result is returned
+  with DON consensus, without exposing the document itself.
+
+# Workflow source — compiled to WebAssembly by `cre workflow build`
+workflow-artifacts:
+  workflow-path: main.ts
+
+# Runtime configuration — values injected from config.<target>.json
+config:
+  schema:
+    mirrorNodeUrl:
+      type: string
+      description: Hedera Mirror Node base URL
+    topicId:
+      type: string
+      description: Hedera HCS Topic ID used as the document registry
+
+# Capabilities requested by this workflow
+capabilities:
+  - type: http_fetch
+    id: http-client
+    description: Fetches topic messages from the Hedera Mirror Node
+
+# Trigger: HTTP — Express backend POSTs the hash to the CRE gateway
+triggers:
+  - type: http
+    id: http-trigger
+    config:
+      # authorizedKeys: []   # add backend EVM key address for deployed workflow
+      # For simulation: leave empty — no auth required
+
+# Confidential Compute settings (Chainlink Privacy bounty)
+confidential: true

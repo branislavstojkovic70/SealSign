@@ -1,13 +1,21 @@
 /**
- * Chainlink CRE (Compute Runtime Environment) integration.
+ * Chainlink CRE (Compute Runtime Environment) integration — server-side fallback.
  *
- * Designed to run inside Chainlink CRE Confidential Compute for the Privacy bounty.
- * For the demo, the same verification logic runs server-side when the CRE SDK is
- * unavailable.
+ * The canonical workflow lives in server/cre/main.ts (TypeScript → WebAssembly).
+ * That workflow runs inside Chainlink CRE Confidential Compute for the Privacy bounty.
  *
- * The workflow (cre/workflow.ts) describes the canonical CRE execution graph;
- * this file is the server-side equivalent.
+ * This file implements the identical verification logic in plain Node.js so the
+ * demo works without a deployed CRE workflow. The logic is intentionally kept
+ * in sync with cre/main.ts step-by-step:
+ *   Step 1 — HTTP GET to Hedera Mirror Node
+ *   Step 2 — Base64-decode messages, parse JSON, search for hash match
+ *   Step 3 — Return VerificationResult with document metadata
+ *
+ * Simulate the real CRE workflow:
+ *   cre workflow simulate server/cre --target staging \
+ *     --http-payload '{"hash":"<64-char-sha256-hex>"}'
  */
+import { WORKFLOW_NAME, WORKFLOW_VERSION } from '../cre/workflow';
 
 import { fetchTopicMessages } from './hedera';
 
@@ -29,6 +37,7 @@ export interface VerificationResult {
  * Step 3 — Return verification result with document metadata.
  */
 export async function verifyDocumentWithCRE(uploadedHash: string): Promise<VerificationResult> {
+  console.log(`[CRE:${WORKFLOW_NAME}@${WORKFLOW_VERSION}] Verifying hash: ${uploadedHash.slice(0, 16)}...`);
   const messages = await fetchTopicMessages();
 
   const match = messages.find((msg) => msg.document.hash === uploadedHash);
@@ -41,7 +50,7 @@ export async function verifyDocumentWithCRE(uploadedHash: string): Promise<Verif
       recipient: null,
       issuedAt: null,
       hederaSequence: null,
-      confidence: 'high',
+      confidence: 'high' as const,
     };
   }
 
@@ -52,6 +61,6 @@ export async function verifyDocumentWithCRE(uploadedHash: string): Promise<Verif
     recipient: match.document.recipient,
     issuedAt: match.document.issuedAt,
     hederaSequence: match.sequenceNumber,
-    confidence: 'high',
+    confidence: 'high' as const,
   };
 }
