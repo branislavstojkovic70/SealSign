@@ -3,6 +3,7 @@ import { API_BASE_URL } from "./api";
 export type IssueApiRequest = {
 	hash: string;
 	issuerName: string;
+	issuerAddress: string;
 	documentType: string;
 	recipientName: string;
 };

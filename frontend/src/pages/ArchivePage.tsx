@@ -18,6 +18,7 @@ import {
 	useTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import { useAppKitAccount } from "@reown/appkit/react";
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import toast from "react-hot-toast";
 import HomeShell from "../components/HomeShell";
@@ -79,8 +80,9 @@ function statusChipColor(
 
 export default function ArchivePage() {
 	const theme = useTheme();
+	const { isConnected, address } = useAppKitAccount();
 	const [rows, setRows] = useState<AuditLogRow[]>([]);
-	const [loading, setLoading] = useState(true);
+	const [loading, setLoading] = useState(false);
 	const [fetchError, setFetchError] = useState<string | null>(null);
 	const [hashQuery, setHashQuery] = useState("");
 	const [sortMode, setSortMode] = useState<AuditSortMode>("newest");
@@ -88,7 +90,9 @@ export default function ArchivePage() {
 	const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_ROWS_PER_PAGE);
 
 	useEffect(() => {
-		fetchHcsMessages()
+		if (!isConnected || !address) return;
+		setLoading(true);
+		fetchHcsMessages(address)
 			.then((messages) => {
 				setRows(
 					messages.map((msg) => ({
@@ -348,19 +352,25 @@ export default function ArchivePage() {
 						</Box>
 					</Box>
 
-					{loading && (
+					{!isConnected && (
+						<Box sx={{ mt: 6, display: "flex", justifyContent: "center" }}>
+							<appkit-button />
+						</Box>
+					)}
+
+					{isConnected && loading && (
 						<Box sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
 							<CircularProgress size={32} sx={{ color: "#10B981" }} />
 						</Box>
 					)}
 
-					{fetchError && !loading && (
+					{isConnected && fetchError && !loading && (
 						<Typography variant="body2" color="error" sx={{ mt: 3 }}>
 							{fetchError}
 						</Typography>
 					)}
 
-					{!loading && !fetchError && (
+					{isConnected && !loading && !fetchError && (
 					<TableContainer
 						component={Paper}
 						elevation={0}
