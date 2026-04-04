@@ -12,8 +12,8 @@ export type IssuePaymentResolution =
 	| { mode: "invalid"; message: string };
 
 /**
- * Issue fee: native token on the connected EVM chain (Sepolia ETH, Hedera test HBAR, etc.).
- * Set `VITE_ISSUE_PAYMENT_RECIPIENT` to enable; omit to skip payment.
+ * Issue fee: native token on the connected chain (AppKit / Sepolia ETH).
+ * Set `VITE_ISSUE_PAYMENT_RECIPIENT` to enable. Amount from `VITE_ISSUE_PAYMENT_AMOUNT_ETH`, default **0.001**.
  */
 export function resolveIssuePayment(): IssuePaymentResolution {
 	const raw = (import.meta.env.VITE_ISSUE_PAYMENT_RECIPIENT as string | undefined)?.trim();
@@ -52,5 +52,56 @@ export function resolveIssuePayment(): IssuePaymentResolution {
 			message:
 				"Invalid VITE_ISSUE_PAYMENT_AMOUNT_ETH (use a decimal number, e.g. 0.001).",
 		};
+	}
+}
+
+export type Eip1193RequestFn = (args: {
+	method: string;
+	params?: unknown[];
+}) => Promise<unknown>;
+
+function getEip1193Request(wallet: unknown): Eip1193RequestFn | null {
+	if (!wallet || typeof wallet !== "object") return null;
+	const w = wallet as {
+		request?: Eip1193RequestFn;
+		ethereum?: { request?: Eip1193RequestFn };
+	};
+	if (typeof w.request === "function") return w.request.bind(wallet) as Eip1193RequestFn;
+	if (w.ethereum && typeof w.ethereum.request === "function") {
+		return w.ethereum.request.bind(w.ethereum) as Eip1193RequestFn;
+	}
+	return null;
+}
+
+/**
+ * Sends fee via `eth_sendTransaction` (Reown / WalletConnect / browser wallet).
+ * Does not wait for block confirmation so Hedera `postIssue` can run immediately after approval.
+ */
+export async function sendNativeIssueFee(
+	walletProvider: unknown,
+	config: IssuePaymentConfig,
+	fromAddress: string,
+): Promise<void> {
+	const request = getEip1193Request(walletProvider);
+	if (!request) {
+		throw new Error("Wallet does not expose an EIP-1193 provider (request).");
+	}
+
+	const from = ethers.utils.getAddress(fromAddress);
+	const valueHex = ethers.BigNumber.from(config.value).toHexString();
+
+	const txHash = await request({
+		method: "eth_sendTransaction",
+		params: [
+			{
+				from,
+				to: config.recipient,
+				value: valueHex,
+			},
+		],
+	});
+
+	if (typeof txHash !== "string" || !/^0x[0-9a-f]{64}$/i.test(txHash)) {
+		throw new Error("Wallet returned an unexpected response for the payment transaction.");
 	}
 }

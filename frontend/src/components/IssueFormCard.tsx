@@ -27,6 +27,9 @@ export type IssueFormCardProps = {
 	sequenceNumber: number | null;
 	explorerUrl: string | null;
 	issueError: string | null;
+	notarizeLabel?: string;
+	paymentHint?: string | null;
+	paymentHintSeverity?: "info" | "error";
 };
 
 export default function IssueFormCard(props: IssueFormCardProps) {
@@ -52,6 +55,9 @@ export default function IssueFormCard(props: IssueFormCardProps) {
 		sequenceNumber,
 		explorerUrl,
 		issueError,
+		notarizeLabel,
+		paymentHint,
+		paymentHintSeverity = "info",
 	} = props;
 
 	return (
@@ -115,10 +121,21 @@ export default function IssueFormCard(props: IssueFormCardProps) {
 						and document name — the PDF never leaves your browser.
 					</Typography>
 
+					{paymentHint ? (
+						<Typography
+							variant="caption"
+							color={paymentHintSeverity === "error" ? "error" : "text.secondary"}
+							sx={{ display: "block" }}
+						>
+							{paymentHint}
+						</Typography>
+					) : null}
+
 					<IssueNotarizeButton
 						walletConnected={walletConnected}
 						disabled={!canNotarize || submitting}
 						onClick={onNotarize}
+						connectedLabel={notarizeLabel}
 					/>
 
 					{issueError && (

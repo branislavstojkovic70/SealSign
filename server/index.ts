@@ -10,7 +10,11 @@ import { HttpError, clientMessage } from './lib/errors';
 const app = express();
 const PORT = 3001;
 
-app.use(cors({ origin: process.env.FRONTEND_URL ?? 'http://localhost:5174' }));
+const corsOrigins =
+  process.env.FRONTEND_URL?.split(',')
+    .map((s) => s.trim())
+    .filter(Boolean) ?? ['http://localhost:5173'];
+app.use(cors({ origin: corsOrigins }));
 app.use(express.json({ limit: '4kb' }));
 
 app.use('/api/issue', issueRouter);

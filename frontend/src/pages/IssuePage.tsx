@@ -1,7 +1,7 @@
 import { Box, Grid } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import { ethers } from "ethers";
-import { useAppKitAccount } from "@reown/appkit/react";
+import { useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
 import HomeShell from "../components/HomeShell";
 import PageScrollArea from "../components/PageScrollArea";
 import IssuePageHero from "../components/IssuePageHero";
@@ -11,9 +11,12 @@ import { isPdfFile } from "../utils/issueHelpers";
 import { postIssue } from "../utils/issueApi";
 import type { IssueApiResult } from "../utils/issueApi";
 import { resolveEvmOrEns } from "../utils/sepoliaEns";
+import { resolveIssuePayment, sendNativeIssueFee } from "../utils/issuePayment";
 
 export default function IssuePage() {
 	const { isConnected, address } = useAppKitAccount();
+	const { walletProvider } = useAppKitProvider("eip155");
+	const payment = resolveIssuePayment();
 	const [documentName, setDocumentName] = useState("");
 	const [issuerIdentity, setIssuerIdentity] = useState("");
 	const [recipientIdentity, setRecipientIdentity] = useState("");
@@ -80,6 +83,14 @@ export default function IssuePage() {
 			const issuerEns = ethers.utils.isAddress(issuerRaw) ? undefined : issuerRaw;
 			const recipientEns = ethers.utils.isAddress(recipientRaw) ? undefined : recipientRaw;
 
+			if (payment.mode === "pay") {
+				if (!walletProvider || !address) {
+					setIssueError("Connect your wallet to pay the issue fee.");
+					return;
+				}
+				await sendNativeIssueFee(walletProvider, payment.config, address);
+			}
+
 			const result = await postIssue({
 				hash: hashHex,
 				documentName: documentName.trim(),
@@ -96,8 +107,21 @@ export default function IssuePage() {
 		}
 	};
 
+	const paymentBlocked = payment.mode === "invalid";
+	const notarizeLabel =
+		payment.mode === "pay"
+			? `Pay ${payment.config.amountDisplay} ETH · Notarize`
+			: undefined;
+	const paymentHint =
+		payment.mode === "pay"
+			? `You will sign a ${payment.config.amountDisplay} ETH transfer (from env) on your connected network, then the hash is sent to Hedera.`
+			: payment.mode === "invalid"
+				? payment.message
+				: null;
+
 	const canNotarize =
 		isConnected &&
+		!paymentBlocked &&
 		Boolean(hashHex) &&
 		documentName.trim() !== "" &&
 		issuerIdentity.trim() !== "" &&
@@ -149,6 +173,9 @@ export default function IssuePage() {
 							sequenceNumber={issueResult?.sequenceNumber ?? null}
 							explorerUrl={issueResult?.explorerUrl ?? null}
 							issueError={issueError}
+							notarizeLabel={notarizeLabel}
+							paymentHint={paymentHint}
+							paymentHintSeverity={paymentBlocked ? "error" : "info"}
 						/>
 					</Box>
 				</Grid>
