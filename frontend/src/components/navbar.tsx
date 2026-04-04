@@ -1,0 +1,175 @@
+import {
+	AppBar,
+	Box,
+	Button,
+	Drawer,
+	IconButton,
+	List,
+	ListItem,
+	ListItemIcon,
+	ListItemText,
+	Toolbar,
+	Typography,
+	useMediaQuery,
+	useTheme,
+} from "@mui/material";
+import { Outlet, useNavigate } from "react-router-dom";
+import { GppGood, UploadFile, ManageSearch, History, Menu } from "@mui/icons-material";
+import { useState } from "react";
+import WalletButton from "./WalletButton";
+
+export default function Navbar() {
+	const navigate = useNavigate();
+	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+	const [drawerOpen, setDrawerOpen] = useState(false);
+
+	const navItems = [
+		{ label: "Home", icon: <GppGood />, path: "/" },
+		{ label: "Issue", icon: <UploadFile />, path: "/issue" },
+		{ label: "Verify", icon: <ManageSearch />, path: "/verify" },
+		{ label: "Archive", icon: <History />, path: "/archive" },
+	];
+
+	return (
+		<Box
+			sx={{
+				flex: "1 1 0%",
+				minHeight: 0,
+				width: "100%",
+				display: "flex",
+				flexDirection: "column",
+				overflow: "hidden",
+			}}
+		>
+			<AppBar position="relative" sx={{ flex: "0 1 auto" }}>
+				<Toolbar
+					sx={{
+						minHeight: "64px",
+						px: 2,
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "space-between",
+					}}
+				>
+					<Box
+						onClick={() => navigate("/")}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" || e.key === " ") {
+								e.preventDefault();
+								navigate("/");
+							}
+						}}
+						role="link"
+						tabIndex={0}
+						aria-label="SealSign home"
+						sx={{
+							display: "flex",
+							alignItems: "center",
+							cursor: "pointer",
+							gap: 1,
+							flex: "1 1 0%",
+						}}
+					>
+						<GppGood sx={{ fontSize: 32, color: theme.palette.primary.main }} />
+						<Typography
+							variant="h6"
+							sx={{ color: theme.palette.text.primary, fontWeight: 700 }}
+						>
+							SealSign
+						</Typography>
+					</Box>
+
+					<Box
+						sx={{
+							display: { xs: "none", md: "flex" },
+							gap: 3,
+							justifyContent: "center",
+							alignItems: "center",
+							flex: "1 1 0%",
+						}}
+					>
+						{navItems.map((item) => (
+							<Button
+								key={item.label}
+								startIcon={item.icon}
+								onClick={() => navigate(item.path)}
+								sx={{
+									color: theme.palette.text.primary,
+									textTransform: "capitalize",
+								}}
+							>
+								{item.label}
+							</Button>
+						))}
+					</Box>
+
+					<Box
+						sx={{
+							display: "flex",
+							justifyContent: "flex-end",
+							alignItems: "center",
+							flex: "1 1 0%",
+						}}
+					>
+						{isMobile ? (
+							<IconButton
+								color="inherit"
+								onClick={() => setDrawerOpen(true)}
+							>
+								<Menu />
+							</IconButton>
+						) : (
+							<WalletButton />
+						)}
+					</Box>
+				</Toolbar>
+			</AppBar>
+
+			<Drawer
+				anchor="right"
+				open={drawerOpen}
+				onClose={() => setDrawerOpen(false)}
+			>
+				<Box
+					sx={{ width: 250 }}
+					role="presentation"
+					onClick={() => setDrawerOpen(false)}
+				>
+					<List>
+						{navItems.map((item) => (
+							// @ts-ignore
+							<ListItem
+								button
+								key={item.label}
+								onClick={() => navigate(item.path)}
+							>
+								<ListItemIcon>{item.icon}</ListItemIcon>
+								<ListItemText primary={item.label} />
+							</ListItem>
+						))}
+						<ListItem sx={{ justifyContent: "center", pt: 2 }}>
+							<WalletButton />
+						</ListItem>
+					</List>
+				</Box>
+			</Drawer>
+
+			<Box
+				id="detail"
+				component="main"
+				sx={{
+					flex: "1 1 0%",
+					minHeight: 0,
+					width: "100%",
+					display: "flex",
+					flexDirection: "column",
+					overflow: "hidden",
+				}}
+			>
+				<Outlet />
+			</Box>
+		</Box>
+	);
+}

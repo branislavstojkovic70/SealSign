@@ -1,0 +1,654 @@
+import { Search } from "@mui/icons-material";
+import {
+	Box,
+	Chip,
+	Grid,
+	InputAdornment,
+	Paper,
+	Table,
+	TableBody,
+	TableCell,
+	TableContainer,
+	TableHead,
+	TablePagination,
+	TableRow,
+	TextField,
+	Typography,
+	useTheme,
+} from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
+import toast from "react-hot-toast";
+import HomeShell from "../components/HomeShell";
+import PageScrollArea from "../components/PageScrollArea";
+import { fadeUp, liveDotPulse, scaleFadeUp } from "../utils/homeMotion";
+
+export type AuditLogRow = {
+	id: string;
+	status: "Sealed" | "Recorded" | "Anchored";
+	documentType: string;
+	issuerEns: string;
+	timestamp: string;
+	/** Full SHA-256 hex — filter target. */
+	documentHash: string;
+};
+
+const MOCK_AUDIT_LOG: AuditLogRow[] = [
+	{
+		id: "1",
+		status: "Sealed",
+		documentType: "Construction Permit",
+		issuerEns: "city-planning.sepolia.eth",
+		timestamp: "2026-04-04T14:22:11Z",
+		documentHash:
+			"a3f5c8e12d9b0471f6e2048aa91c3d7e5b0f2a9c8d1e4f7a0b3c6d9e2f5a8b1c",
+	},
+	{
+		id: "2",
+		status: "Recorded",
+		documentType: "University Diploma",
+		issuerEns: "metropolitan-uni.sepolia.eth",
+		timestamp: "2026-04-04T11:05:33Z",
+		documentHash:
+			"7e2b9d4c1f8a0e3b6c9d2f5a8b1c4e7f0a3d6b9c2e5f8a1b4c7d0e3f6a9b2c",
+	},
+	{
+		id: "3",
+		status: "Anchored",
+		documentType: "Medical Board License",
+		issuerEns: "health-registry.sepolia.eth",
+		timestamp: "2026-04-03T18:41:02Z",
+		documentHash:
+			"2c5f8a1b4e7d0c3f6a9b2e5d8c1f4a7b0e3d6c9f2a5b8e1d4c7f0a3b6d9e2c",
+	},
+	{
+		id: "4",
+		status: "Sealed",
+		documentType: "Corporate Articles of Incorporation",
+		issuerEns: "commerce-bureau.sepolia.eth",
+		timestamp: "2026-04-03T09:17:48Z",
+		documentHash:
+			"f1a4b7c0d3e6f9a2b5c8d1e4f7a0b3c6d9e2f5a8b1c4d7e0f3a6b9c2d5e8f",
+	},
+	{
+		id: "5",
+		status: "Recorded",
+		documentType: "Property Title Deed",
+		issuerEns: "land-records.sepolia.eth",
+		timestamp: "2026-04-02T16:53:29Z",
+		documentHash:
+			"9b2e5d8c1f4a7b0e3d6c9f2a5b8e1d4c7f0a3b6d9e2c5f8a1b4c7d0e3f6a9b",
+	},
+	{
+		id: "6",
+		status: "Recorded",
+		documentType: "Food Safety Certificate",
+		issuerEns: "health-inspector.sepolia.eth",
+		timestamp: "2026-04-04T08:30:00Z",
+		documentHash:
+			"c4d7e0f3a6b9c2d5e8f1a4b7c0d3e6f9a2b5c8d1e4f7a0b3c6d9e2f5a8b1c4",
+	},
+	{
+		id: "7",
+		status: "Sealed",
+		documentType: "Professional Engineer Stamp",
+		issuerEns: "pe-board.sepolia.eth",
+		timestamp: "2026-04-01T12:00:00Z",
+		documentHash:
+			"d5e8f1a4b7c0d3e6f9a2b5c8d1e4f7a0b3c6d9e2f5a8b1c4d7e0f3a6b9c2d",
+	},
+	{
+		id: "8",
+		status: "Anchored",
+		documentType: "Export Customs Declaration",
+		issuerEns: "trade-gov.sepolia.eth",
+		timestamp: "2026-04-02T07:15:22Z",
+		documentHash:
+			"e6f9a2b5c8d1e4f7a0b3c6d9e2f5a8b1c4d7e0f3a6b9c2d5e8f1a4b7c0d3e6",
+	},
+	{
+		id: "9",
+		status: "Recorded",
+		documentType: "Nonprofit Tax Exemption",
+		issuerEns: "irs-mirror.sepolia.eth",
+		timestamp: "2026-03-30T19:45:00Z",
+		documentHash:
+			"f7a0b3c6d9e2f5a8b1c4d7e0f3a6b9c2d5e8f1a4b7c0d3e6f9a2b5c8d1e4f",
+	},
+	{
+		id: "10",
+		status: "Sealed",
+		documentType: "Pilot License Renewal",
+		issuerEns: "faa-registry.sepolia.eth",
+		timestamp: "2026-04-04T16:02:41Z",
+		documentHash:
+			"a8b1c4d7e0f3a6b9c2d5e8f1a4b7c0d3e6f9a2b5c8d1e4f7a0b3c6d9e2f5a",
+	},
+	{
+		id: "11",
+		status: "Recorded",
+		documentType: "Solar Installation Warranty",
+		issuerEns: "green-cert.sepolia.eth",
+		timestamp: "2026-03-29T10:20:00Z",
+		documentHash:
+			"b9c2d5e8f1a4b7c0d3e6f9a2b5c8d1e4f7a0b3c6d9e2f5a8b1c4d7e0f3a6b",
+	},
+	{
+		id: "12",
+		status: "Anchored",
+		documentType: "Court Filing Receipt",
+		issuerEns: "district-court.sepolia.eth",
+		timestamp: "2026-04-03T22:11:09Z",
+		documentHash:
+			"c0d3e6f9a2b5c8d1e4f7a0b3c6d9e2f5a8b1c4d7e0f3a6b9c2d5e8f1a4b7c",
+	},
+];
+
+const DEFAULT_ROWS_PER_PAGE = 5;
+const ROWS_PER_PAGE_OPTIONS = [5, 10, 25] as const;
+
+type AuditSortMode = "newest" | "oldest" | "document_az";
+
+const SORT_OPTIONS: { mode: AuditSortMode; label: string }[] = [
+	{ mode: "newest", label: "Last added" },
+	{ mode: "oldest", label: "Oldest first" },
+	{ mode: "document_az", label: "Document A–Z" },
+];
+
+function ts(row: AuditLogRow) {
+	return new Date(row.timestamp).getTime();
+}
+
+function formatDisplayTime(iso: string) {
+	try {
+		return new Intl.DateTimeFormat(undefined, {
+			dateStyle: "medium",
+			timeStyle: "short",
+		}).format(new Date(iso));
+	} catch {
+		return iso;
+	}
+}
+
+/** Table preview only; full hex via `title` on the cell. */
+function formatHashPreview(hex: string, headChars = 10, tailChars = 6) {
+	const h = hex.replace(/^0x/i, "");
+	if (h.length <= headChars + tailChars + 1) return h;
+	return `${h.slice(0, headChars)}…${h.slice(-tailChars)}`;
+}
+
+function statusChipColor(
+	status: AuditLogRow["status"],
+): "success" | "default" | "primary" {
+	if (status === "Sealed") return "success";
+	if (status === "Anchored") return "primary";
+	return "default";
+}
+
+export default function ArchivePage() {
+	const theme = useTheme();
+	const [hashQuery, setHashQuery] = useState("");
+	const [sortMode, setSortMode] = useState<AuditSortMode>("newest");
+	const [page, setPage] = useState(0);
+	const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_ROWS_PER_PAGE);
+
+	const filtered = useMemo(() => {
+		const q = hashQuery.trim().toLowerCase().replace(/^0x/i, "");
+		if (!q) return MOCK_AUDIT_LOG;
+		return MOCK_AUDIT_LOG.filter((row) =>
+			row.documentHash.toLowerCase().includes(q),
+		);
+	}, [hashQuery]);
+
+	const sorted = useMemo(() => {
+		const copy = [...filtered];
+		if (sortMode === "newest") {
+			copy.sort((a, b) => ts(b) - ts(a));
+		} else if (sortMode === "oldest") {
+			copy.sort((a, b) => ts(a) - ts(b));
+		} else {
+			copy.sort((a, b) =>
+				a.documentType.localeCompare(b.documentType, undefined, {
+					sensitivity: "base",
+				}),
+			);
+		}
+		return copy;
+	}, [filtered, sortMode]);
+
+	const pagedRows = useMemo(
+		() =>
+			sorted.slice(
+				page * rowsPerPage,
+				page * rowsPerPage + rowsPerPage,
+			),
+		[sorted, page, rowsPerPage],
+	);
+
+	useEffect(() => {
+		setPage(0);
+	}, [hashQuery, sortMode]);
+
+	const handleChangePage = (_: unknown, newPage: number) => {
+		setPage(newPage);
+	};
+
+	const handleChangeRowsPerPage = (e: ChangeEvent<HTMLInputElement>) => {
+		setRowsPerPage(parseInt(e.target.value, 10));
+		setPage(0);
+	};
+
+	const copyDocumentHash = useCallback(async (hex: string) => {
+		try {
+			await navigator.clipboard.writeText(hex);
+			toast.success("Hash copied to clipboard");
+		} catch {
+			toast.error("Could not copy hash");
+		}
+	}, []);
+
+	return (
+		<PageScrollArea>
+			<HomeShell dense>
+				<Grid
+					size={{ xs: 12 }}
+					sx={{
+						width: "100%",
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "stretch",
+						maxWidth: 960,
+						mx: "auto",
+					}}
+				>
+					<Box
+						sx={{
+							display: "flex",
+							flexDirection: { xs: "column", sm: "row" },
+							alignItems: { xs: "stretch", sm: "flex-start" },
+							justifyContent: "space-between",
+							gap: 2,
+							width: "100%",
+						}}
+					>
+						<Box sx={{ flex: "1 1 auto", minWidth: 0 }}>
+							<Typography
+								variant="h4"
+								component="h1"
+								sx={{
+									mt: 0,
+									fontWeight: 700,
+									letterSpacing: "-0.02em",
+									color: theme.palette.text.primary,
+									fontSize: { xs: "1.35rem", sm: "1.5rem", md: "1.75rem" },
+									opacity: 0,
+									animation: `${fadeUp} 0.7s 0.06s cubic-bezier(0.22, 1, 0.36, 1) forwards`,
+								}}
+							>
+								Public audit log
+							</Typography>
+							<Typography
+								variant="body2"
+								color="text.secondary"
+								sx={{
+									mt: { xs: 1.5, sm: 2 },
+									maxWidth: 520,
+									lineHeight: 1.6,
+									opacity: 0,
+									animation: `${fadeUp} 0.7s 0.12s cubic-bezier(0.22, 1, 0.36, 1) forwards`,
+								}}
+							>
+								Recent document hashes anchored on Hedera HCS. Filter by hash to
+								match mirror-node payloads.
+							</Typography>
+						</Box>
+
+						<Box
+							sx={{
+								display: "flex",
+								alignItems: "center",
+								gap: 1,
+								alignSelf: { xs: "flex-end", sm: "flex-start" },
+								mt: { xs: 0, sm: 0.5 },
+								px: 1.5,
+								py: 0.75,
+								borderRadius: 2,
+								border: `1px solid ${alpha(theme.palette.success.main, 0.35)}`,
+								backgroundColor: alpha(theme.palette.success.main, 0.08),
+							}}
+						>
+							<Box
+								aria-hidden
+								sx={{
+									width: 10,
+									height: 10,
+									borderRadius: "50%",
+									backgroundColor: "#10B981",
+									animation: `${liveDotPulse} 1.8s ease-in-out infinite`,
+								}}
+							/>
+							<Typography
+								variant="caption"
+								sx={{
+									mt: 0,
+									fontWeight: 600,
+									letterSpacing: "0.04em",
+									textTransform: "uppercase",
+									color: alpha(theme.palette.success.light, 0.95),
+								}}
+							>
+								Live Audit Feed
+							</Typography>
+						</Box>
+					</Box>
+
+					<TextField
+						fullWidth
+						size="small"
+						placeholder="Filter by document hash (hex)…"
+						value={hashQuery}
+						onChange={(e) => setHashQuery(e.target.value)}
+						slotProps={{
+							input: {
+								startAdornment: (
+									<InputAdornment position="start">
+										<Search
+											sx={{
+												color: theme.palette.text.secondary,
+												fontSize: 20,
+											}}
+										/>
+									</InputAdornment>
+								),
+							},
+						}}
+						sx={{
+							mt: { xs: 2.5, sm: 3 },
+							"& .MuiOutlinedInput-root": {
+								borderRadius: 2,
+								backgroundColor: alpha(theme.palette.background.paper, 0.65),
+								backdropFilter: "blur(8px)",
+								"& fieldset": {
+									borderColor: alpha(theme.palette.primary.main, 0.2),
+								},
+								"&:hover fieldset": {
+									borderColor: alpha(theme.palette.primary.main, 0.35),
+								},
+								"&.Mui-focused fieldset": {
+									borderColor: theme.palette.primary.main,
+								},
+							},
+							"& .MuiInputBase-input::placeholder": {
+								color: theme.palette.text.disabled,
+								opacity: 1,
+							},
+						}}
+					/>
+
+					<Box
+						sx={{
+							mt: { xs: 2, sm: 2.5 },
+							display: "flex",
+							flexDirection: { xs: "column", sm: "row" },
+							alignItems: { xs: "stretch", sm: "center" },
+							justifyContent: "space-between",
+							gap: 1.5,
+							flexWrap: "wrap",
+						}}
+					>
+						<Typography
+							variant="caption"
+							color="text.secondary"
+							sx={{
+								mt: 0,
+								alignSelf: { xs: "flex-start", sm: "center" },
+								fontWeight: 600,
+								letterSpacing: "0.06em",
+								textTransform: "uppercase",
+							}}
+						>
+							Order
+						</Typography>
+						<Box
+							sx={{
+								display: "flex",
+								flexWrap: "wrap",
+								gap: 1,
+							}}
+						>
+							{SORT_OPTIONS.map(({ mode, label }) => {
+								const selected = sortMode === mode;
+								return (
+									<Chip
+										key={mode}
+										label={label}
+										onClick={() => setSortMode(mode)}
+										color={selected ? "primary" : "default"}
+										variant={selected ? "filled" : "outlined"}
+										size="small"
+										sx={{ fontWeight: 600 }}
+									/>
+								);
+							})}
+						</Box>
+					</Box>
+
+					<TableContainer
+						component={Paper}
+						elevation={0}
+						sx={{
+							mt: { xs: 2, sm: 2.5 },
+							width: "100%",
+							borderRadius: 3,
+							border: `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
+							backgroundColor: alpha(theme.palette.background.paper, 0.85),
+							backdropFilter: "blur(10px)",
+							opacity: 0,
+							animation: `${scaleFadeUp} 0.65s 0.18s cubic-bezier(0.22, 1, 0.36, 1) forwards`,
+							overflowX: "auto",
+						}}
+					>
+						<Table
+							stickyHeader
+							aria-label="Hedera HCS audit log"
+							sx={{
+								"& .MuiTableCell-head": {
+									py: 1.75,
+								},
+								"& .MuiTableCell-body": {
+									py: 2,
+								},
+							}}
+						>
+							<TableHead>
+								<TableRow>
+									<TableCell
+										sx={{
+											fontWeight: 700,
+											color: theme.palette.text.secondary,
+											borderBottom: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+											backgroundColor: alpha(theme.palette.background.paper, 0.95),
+										}}
+									>
+										Status
+									</TableCell>
+									<TableCell
+										sx={{
+											fontWeight: 700,
+											color: theme.palette.text.secondary,
+											borderBottom: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+											backgroundColor: alpha(theme.palette.background.paper, 0.95),
+										}}
+									>
+										Document Type
+									</TableCell>
+									<TableCell
+										sx={{
+											fontWeight: 700,
+											color: theme.palette.text.secondary,
+											borderBottom: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+											backgroundColor: alpha(theme.palette.background.paper, 0.95),
+										}}
+									>
+										Hash
+									</TableCell>
+									<TableCell
+										sx={{
+											fontWeight: 700,
+											color: theme.palette.text.secondary,
+											borderBottom: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+											backgroundColor: alpha(theme.palette.background.paper, 0.95),
+										}}
+									>
+										Issuer (ENS)
+									</TableCell>
+									<TableCell
+										sx={{
+											fontWeight: 700,
+											color: theme.palette.text.secondary,
+											borderBottom: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+											backgroundColor: alpha(theme.palette.background.paper, 0.95),
+										}}
+									>
+										Timestamp
+									</TableCell>
+								</TableRow>
+							</TableHead>
+							<TableBody>
+								{sorted.length === 0 ? (
+									<TableRow>
+										<TableCell colSpan={5} sx={{ py: 4, textAlign: "center" }}>
+											<Typography variant="body2" color="text.secondary">
+												No rows match this hash.
+											</Typography>
+										</TableCell>
+									</TableRow>
+								) : (
+									pagedRows.map((row) => (
+										<TableRow
+											key={row.id}
+											hover
+											sx={{
+												"&:last-child td": { borderBottom: 0 },
+												"&:hover": {
+													backgroundColor: alpha(
+														theme.palette.primary.main,
+														0.06,
+													),
+												},
+											}}
+										>
+											<TableCell sx={{ borderColor: alpha(theme.palette.divider, 0.6) }}>
+												<Chip
+													label={row.status}
+													size="small"
+													color={statusChipColor(row.status)}
+													variant="outlined"
+													sx={{ fontWeight: 600 }}
+												/>
+											</TableCell>
+											<TableCell
+												sx={{
+													borderColor: alpha(theme.palette.divider, 0.6),
+													color: theme.palette.text.primary,
+													fontWeight: 500,
+												}}
+											>
+												{row.documentType}
+											</TableCell>
+											<TableCell
+												title={`${row.documentHash} — click to copy`}
+												role="button"
+												tabIndex={0}
+												aria-label="Copy document hash to clipboard"
+												onClick={() => void copyDocumentHash(row.documentHash)}
+												onKeyDown={(e) => {
+													if (e.key === "Enter" || e.key === " ") {
+														e.preventDefault();
+														void copyDocumentHash(row.documentHash);
+													}
+												}}
+												sx={{
+													borderColor: alpha(theme.palette.divider, 0.6),
+													fontFamily: "monospace",
+													fontSize: "0.8rem",
+													color: theme.palette.text.secondary,
+													whiteSpace: "nowrap",
+													maxWidth: 160,
+													cursor: "pointer",
+													userSelect: "none",
+													"&:focus-visible": {
+														outline: `2px solid ${theme.palette.primary.main}`,
+														outlineOffset: 2,
+													},
+													"&:active": {
+														opacity: 0.85,
+													},
+												}}
+											>
+												{formatHashPreview(row.documentHash)}
+											</TableCell>
+											<TableCell
+												sx={{
+													borderColor: alpha(theme.palette.divider, 0.6),
+													fontFamily: "monospace",
+													fontSize: "0.8rem",
+													color: theme.palette.primary.light,
+												}}
+											>
+												{row.issuerEns}
+											</TableCell>
+											<TableCell
+												sx={{
+													borderColor: alpha(theme.palette.divider, 0.6),
+													color: theme.palette.text.secondary,
+													whiteSpace: "nowrap",
+												}}
+											>
+												{formatDisplayTime(row.timestamp)}
+											</TableCell>
+										</TableRow>
+									))
+								)}
+							</TableBody>
+						</Table>
+						<TablePagination
+							component="div"
+							count={sorted.length}
+							page={page}
+							onPageChange={handleChangePage}
+							rowsPerPage={rowsPerPage}
+							onRowsPerPageChange={handleChangeRowsPerPage}
+							rowsPerPageOptions={[...ROWS_PER_PAGE_OPTIONS]}
+							labelRowsPerPage="Rows"
+							sx={{
+								borderTop: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
+								backgroundColor: alpha(theme.palette.background.paper, 0.92),
+								color: theme.palette.text.secondary,
+								"& .MuiTablePagination-toolbar": {
+									flexWrap: "wrap",
+									gap: 1,
+									px: { xs: 1, sm: 2 },
+									py: 1,
+								},
+								"& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+									{
+										color: theme.palette.text.secondary,
+									},
+								"& .MuiTablePagination-select": {
+									color: theme.palette.text.primary,
+								},
+								"& .MuiIconButton-root": {
+									color: theme.palette.text.secondary,
+									"&:disabled": {
+										color: theme.palette.action.disabled,
+									},
+								},
+							}}
+						/>
+					</TableContainer>
+				</Grid>
+			</HomeShell>
+		</PageScrollArea>
+	);
+}

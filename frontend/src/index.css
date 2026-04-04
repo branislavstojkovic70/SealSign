@@ -1,0 +1,42 @@
+html {
+	height: 100%;
+}
+
+#root {
+	margin: 0;
+	padding: 0;
+	width: 100%;
+	height: 100%;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	overflow: hidden;
+}
+
+:root {
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	-webkit-text-size-adjust: 100%;
+}
+
+body {
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	min-width: 320px;
+	height: 100%;
+	min-height: 100vh;
+	min-height: 100dvh;
+	overflow: hidden;
+	width: 100%;
+}
+
+h4 {
+	margin: 0;
+}
+
+#logo:hover {
+	cursor: pointer;
+}
