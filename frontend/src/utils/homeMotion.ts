@@ -24,6 +24,21 @@ export const scaleFadeUp = keyframes`
 	}
 `;
 
+/** Live audit feed dot (Archive). */
+export const liveDotPulse = keyframes`
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+		box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55);
+	}
+	50% {
+		opacity: 0.85;
+		transform: scale(1.08);
+		box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+	}
+`;
+
 /** Ambient halo behind hero. */
 export const haloPulse = keyframes`
 	0%,

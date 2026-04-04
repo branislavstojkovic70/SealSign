@@ -7,9 +7,9 @@ import { Box, CssBaseline, ThemeProvider } from "@mui/material";
 import theme from "./theme";
 import Navbar from "./components/navbar";
 import HomePage from "./pages/HomePage";
-import PlaceholderPage from "./pages/PlaceholderPage";
 import IssuePage from "./pages/IssuePage";
 import VerifyPage from "./pages/VerifyPage";
+import ArchivePage from "./pages/ArchivePage";
 
 const router = createBrowserRouter([
 	{
@@ -19,7 +19,7 @@ const router = createBrowserRouter([
 			{ index: true, element: <HomePage /> },
 			{ path: "issue", element: <IssuePage /> },
 			{ path: "verify", element: <VerifyPage /> },
-			{ path: "archive", element: <PlaceholderPage title="Archive" /> },
+			{ path: "archive", element: <ArchivePage /> },
 		],
 	},
 ]);
