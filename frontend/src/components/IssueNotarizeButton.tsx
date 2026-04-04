@@ -5,6 +5,8 @@ type IssueNotarizeButtonProps = {
 	walletConnected: boolean;
 	disabled: boolean;
 	onClick: () => void;
+	/** When set and wallet is connected, used instead of the default notarize label. */
+	connectedLabel?: string;
 };
 
 export default function IssueNotarizeButton({
