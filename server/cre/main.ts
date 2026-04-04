@@ -1,26 +1,22 @@
 /**
- * SealSign — Chainlink CRE Verification Workflow
+ * SealSign — Chainlink CRE Verification Workflow (Confidential HTTP)
  *
- * Compiled to WASM and runs inside Chainlink CRE (Confidential Compute).
- * Each CRE node independently fetches the Hedera Mirror Node and compares
- * the uploaded hash against HCS records. consensusIdenticalAggregation
- * ensures all nodes agree before the result is returned — cryptographic
- * proof with no single point of failure.
+ * Compiled to WASM and runs inside Chainlink CRE Confidential Compute.
+ * Uses ConfidentialHTTPClient so the Hedera Mirror Node request and the
+ * document metadata response (hash, issuer, recipient) are encrypted inside
+ * a TEE — qualifying for the Chainlink Privacy bounty.
  *
- * Compile:  bun x cre-compile server/cre/main.ts server/cre/workflow.wasm
- * Simulate: cre workflow simulate server/cre --target staging-settings \
+ * Simulate: cre workflow simulate server/cre --target staging \
  *             --http-payload '{"hash":"<sha256-hex>"}'
- * Deploy:   cre workflow deploy server/cre --target production-settings
+ * Deploy:   cre workflow deploy server/cre --target production
  *           (requires CRE Early Access + funded Sepolia wallet)
  */
 
 import {
   cre,
   type Runtime,
-  type NodeRuntime,
   HTTPCapability,
-  HTTPClient,
-  consensusIdenticalAggregation,
+  ConfidentialHTTPClient,
   decodeJson,
   ok,
   json,
@@ -104,7 +100,7 @@ function base64Decode(b64: string): string {
 // ---------------------------------------------------------------------------
 
 const httpTrigger = new HTTPCapability();
-const httpClient = new HTTPClient();
+const confidentialHttpClient = new ConfidentialHTTPClient();
 
 // ---------------------------------------------------------------------------
 // Handler — invoked by CRE on every HTTP trigger
@@ -124,83 +120,72 @@ function verifyDocument(
   runtime.log(`[SealSign] Verifying hash: ${hash.slice(0, 16)}...`);
 
   // -------------------------------------------------------------------------
-  // runInNodeMode — each CRE node fetches Mirror Node independently.
-  // consensusIdenticalAggregation requires all nodes to return the same
-  // result, providing the Privacy bounty confidential compute guarantee.
+  // ConfidentialHTTPClient — the Mirror Node request and the document metadata
+  // response (hash, issuer, recipient) are encrypted inside a TEE enclave.
+  // API credentials and response data are never exposed to CRE nodes or
+  // written on-chain — qualifying for the Chainlink Privacy bounty.
   // -------------------------------------------------------------------------
-  // Return a JSON string from node mode — CRE consensus handles strings
-  // natively as primitives. Parse back to VerificationResult after consensus.
-  const aggregated = runtime.runInNodeMode(
-    (nodeRuntime: NodeRuntime<Config>): string => {
-      const { mirrorNodeUrl, topicId } = nodeRuntime.config;
+  const { mirrorNodeUrl, topicId } = runtime.config;
 
-      const url =
-        `${mirrorNodeUrl}/api/v1/topics/${topicId}` +
-        `/messages?limit=100&order=asc`;
+  const url =
+    `${mirrorNodeUrl}/api/v1/topics/${topicId}` +
+    `/messages?limit=100&order=asc`;
 
-      const response = httpClient
-        .sendRequest(nodeRuntime, { url, method: "GET" })
-        .result();
+  const response = confidentialHttpClient
+    .sendRequest(runtime, {
+      vaultDonSecrets: [],
+      request: { url, method: "GET" },
+    })
+    .result();
 
-      if (!ok(response)) {
-        throw new Error(
-          `Hedera Mirror Node returned HTTP ${response.statusCode}`
-        );
-      }
+  if (!ok(response)) {
+    throw new Error(
+      `Hedera Mirror Node returned HTTP ${response.statusCode}`
+    );
+  }
 
-      const data = json(response) as MirrorNodeResponse;
+  const data = json(response) as MirrorNodeResponse;
 
-      for (const msg of data.messages) {
-        // Mirror Node base64-encodes the raw HCS message bytes.
-        // atob() is available in the CRE QuickJS WASM runtime.
-        const decoded = base64Decode(msg.message);
-        let record: DocumentRecord;
+  for (const msg of data.messages) {
+    const decoded = base64Decode(msg.message);
+    let record: DocumentRecord;
 
-        try {
-          record = JSON.parse(decoded) as DocumentRecord;
-        } catch {
-          nodeRuntime.log(
-            `[SealSign] Skipping malformed message seq=${msg.sequence_number}`
-          );
-          continue;
-        }
-
-        if (record.hash.toLowerCase() === hash.toLowerCase()) {
-          nodeRuntime.log(
-            `[SealSign] Match found at sequence ${msg.sequence_number} ` +
-              `issuer=${record.issuer}`
-          );
-          return JSON.stringify({
-            verified: true,
-            issuer: record.issuer,
-            documentType: record.type,
-            recipient: record.recipient,
-            issuedAt: record.issuedAt,
-            hederaSequence: msg.sequence_number,
-            confidence: "high",
-          } satisfies VerificationResult);
-        }
-      }
-
-      nodeRuntime.log(
-        `[SealSign] No match found for hash ${hash.slice(0, 16)}...`
+    try {
+      record = JSON.parse(decoded) as DocumentRecord;
+    } catch {
+      runtime.log(
+        `[SealSign] Skipping malformed message seq=${msg.sequence_number}`
       );
-      return JSON.stringify({
-        verified: false,
-        issuer: "",
-        documentType: "",
-        recipient: "",
-        issuedAt: "",
-        hederaSequence: 0,
-        confidence: "high",
-      } satisfies VerificationResult);
-    },
-    consensusIdenticalAggregation<string>()
-  )();
+      continue;
+    }
 
-  const result = JSON.parse(aggregated.result()) as VerificationResult;
-  runtime.log(`[SealSign] Consensus reached: verified=${result.verified}`);
-  return result;
+    if (record.hash.toLowerCase() === hash.toLowerCase()) {
+      runtime.log(
+        `[SealSign] Match found at sequence ${msg.sequence_number} ` +
+          `issuer=${record.issuer}`
+      );
+      return {
+        verified: true,
+        issuer: record.issuer,
+        documentType: record.type,
+        recipient: record.recipient,
+        issuedAt: record.issuedAt,
+        hederaSequence: msg.sequence_number,
+        confidence: "high",
+      } satisfies VerificationResult;
+    }
+  }
+
+  runtime.log(`[SealSign] No match found for hash ${hash.slice(0, 16)}...`);
+  return {
+    verified: false,
+    issuer: "",
+    documentType: "",
+    recipient: "",
+    issuedAt: "",
+    hederaSequence: 0,
+    confidence: "high",
+  } satisfies VerificationResult;
 }
 
 // ---------------------------------------------------------------------------
