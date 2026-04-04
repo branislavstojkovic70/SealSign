@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { verifyDocumentWithCRE } from '../lib/cre';
+import { logVerificationAttempt } from '../lib/hedera';
 
 const router = Router();
 
@@ -26,6 +27,13 @@ router.post('/', async (req: Request<{}, {}, VerifyRequestBody>, res: Response) 
   }
 
   const result = await verifyDocumentWithCRE(hash);
+
+  void logVerificationAttempt({
+    hash,
+    verified: result.verified,
+    timestamp: new Date().toISOString(),
+    ip: req.ip,
+  });
 
   if (!result.verified) {
     res.json({

@@ -17,7 +17,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│              FRONTEND (React 18 + Vite, port 5173)       │
+│              FRONTEND (React 18 + Vite, port 5174)       │
 │  ┌────────────┐  ┌──────────────────┐  ┌─────────────── │
 │  │  Issuer    │  │  Verifier        │  │  ENS Resolution │
 │  │  Dashboard │  │  Portal          │  │  Display        │
@@ -81,7 +81,7 @@ sealsign/
 │       ├── hash.ts               # Server SHA-256 (node:crypto)
 │       ├── hedera.ts             # Hedera HCS functions (submit, query)
 │       └── cre.ts                # Chainlink CRE workflow integration
-├── src/                          # React SPA — runs on port 5173
+├── src/                          # React SPA — runs on port 5174
 │   ├── main.tsx                  # ReactDOM.createRoot entry
 │   ├── App.tsx                   # React Router: /, /issue, /verify
 │   ├── index.css                 # Tailwind directives
@@ -198,7 +198,7 @@ VITE_API_URL=http://localhost:3001
 
 ## Frontend Specifications
 
-> Lives in `src/`. Runs on **port 5173** (Vite). No secrets — only `VITE_` env vars reach the browser.
+> Lives in `src/`. Runs on **port 5174** (Vite). No secrets — only `VITE_` env vars reach the browser.
 
 ### `src/main.tsx` — Entry Point
 
@@ -281,7 +281,7 @@ import verifyRouter from './routes/verify'
 import hederaRouter from './routes/hedera'
 
 const app = express()
-app.use(cors({ origin: 'http://localhost:5173' }))
+app.use(cors({ origin: 'http://localhost:5174' }))
 app.use(express.json())
 app.use('/api/issue',            issueRouter)
 app.use('/api/verify',           verifyRouter)

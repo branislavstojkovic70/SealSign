@@ -9,7 +9,7 @@ A decentralized document verification platform built for ETHGlobal Cannes 2026. 
 
 ## Stack
 
-- **React 18 + TypeScript + Vite** — frontend SPA (port 5173)
+- **React 18 + TypeScript + Vite** — frontend SPA (port 5174)
 - **Express 4** — backend API server (port 3001), holds private keys
 - **Hedera HCS** (`@hashgraph/sdk`) — immutable document hash registry, no smart contracts
 - **Chainlink CRE** — autonomous verification workflow in Confidential Compute
@@ -22,7 +22,7 @@ A decentralized document verification platform built for ETHGlobal Cannes 2026. 
 
 ```bash
 npm run dev          # start both Vite + Express (concurrently)
-npm run dev:client   # Vite only (localhost:5173)
+npm run dev:client   # Vite only (localhost:5174)
 npm run dev:server   # Express only (localhost:3001)
 npm run build        # Vite production build
 npm run lint         # ESLint

@@ -93,6 +93,28 @@ export async function submitDocumentHash(params: {
   };
 }
 
+export interface AuditRecord {
+  hash: string;
+  verified: boolean;
+  timestamp: string;
+  ip?: string;
+}
+
+/**
+ * Writes a verification attempt to the audit HCS topic (HEDERA_AUDIT_TOPIC_ID).
+ * Non-blocking — callers should fire-and-forget (void).
+ */
+export async function logVerificationAttempt(params: AuditRecord): Promise<void> {
+  const auditTopicId = process.env.HEDERA_AUDIT_TOPIC_ID;
+  if (!auditTopicId) return; // Gracefully skip if not configured
+
+  const client = buildClient();
+  await new TopicMessageSubmitTransaction()
+    .setTopicId(auditTopicId)
+    .setMessage(JSON.stringify(params))
+    .execute(client);
+}
+
 /**
  * Fetches all messages from the configured HCS topic via Hedera Mirror Node.
  * Mirror Node messages are base64-encoded — decoded before parsing JSON.

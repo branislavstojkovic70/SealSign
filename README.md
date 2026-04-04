@@ -29,7 +29,7 @@ SHA-256 fingerprints stored on Hedera Consensus Service. Chainlink CRE verifies 
 npm install
 cp .env.example .env               # fill in your keys
 npx tsx scripts/createTopic.ts     # create Hedera HCS topic
-npm run dev                        # starts Vite (5173) + Express (3001)
+npm run dev                        # starts Vite (5174) + Express (3001)
 ```
 
 ## Architecture
