@@ -1,7 +1,6 @@
 /**
  * HCS topic JSON (canonical): hash, documentName, issuerAddress, recipientAddress,
- * optional issuerEns / recipientEns, and issuerIdentityText / recipientIdentityText
- * (human-readable "name : address = address" when ENS was used).
+ * optional issuerEns / recipientEns.
  *
  * Also normalizes legacy and intermediate shapes (issuer/type/recipient, signer/institution).
  */
@@ -17,9 +16,6 @@ export type NormalizedLedgerDocument = {
   issuerLabel: string | null;
   /** Legacy human-readable recipient name */
   recipientLabel: string | null;
-  /** e.g. `alice.eth : 0x… = 0x…` from issue UI */
-  issuerIdentityText: string | null;
-  recipientIdentityText: string | null;
   issuedAt: string;
 };
 
@@ -31,8 +27,6 @@ export type WrittenLedgerPayload = {
   issuedAt: string;
   issuerEns?: string;
   recipientEns?: string;
-  issuerIdentityText?: string;
-  recipientIdentityText?: string;
 };
 
 function parseAddr(v: unknown): string | null {
@@ -66,9 +60,6 @@ export function normalizeLedgerDocument(doc: unknown): NormalizedLedgerDocument 
   const issuerLabel = str(d.institutionLabel) ?? str(d.issuer);
   const recipientLabel = recipientAddress ? null : str(d.recipient);
 
-  const issuerIdentityText = str(d.issuerIdentityText);
-  const recipientIdentityText = str(d.recipientIdentityText);
-
   return {
     hash,
     documentName,
@@ -78,28 +69,16 @@ export function normalizeLedgerDocument(doc: unknown): NormalizedLedgerDocument 
     recipientEns,
     issuerLabel,
     recipientLabel,
-    issuerIdentityText,
-    recipientIdentityText,
     issuedAt,
   };
 }
 
-/** Single-line issuer for verify UI */
+/** Single-line issuer for verify UI — always the 0x address; ENS shown separately */
 export function issuerVerifyLine(d: NormalizedLedgerDocument): string | null {
-  return (
-    d.issuerIdentityText ??
-    d.issuerEns ??
-    d.issuerLabel ??
-    d.issuerAddress
-  );
+  return d.issuerAddress ?? d.issuerLabel;
 }
 
-/** Single-line recipient for verify UI */
+/** Single-line recipient for verify UI — always the 0x address; ENS shown separately */
 export function recipientVerifyLine(d: NormalizedLedgerDocument): string | null {
-  return (
-    d.recipientIdentityText ??
-    d.recipientEns ??
-    d.recipientLabel ??
-    d.recipientAddress
-  );
+  return d.recipientAddress ?? d.recipientLabel;
 }

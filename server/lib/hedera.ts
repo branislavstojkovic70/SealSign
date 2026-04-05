@@ -8,9 +8,9 @@ import {
   type NormalizedLedgerDocument,
   type WrittenLedgerPayload,
   normalizeLedgerDocument,
-} from './ledgerDocument';
+} from './hcsDocument';
 
-export type { NormalizedLedgerDocument } from './ledgerDocument';
+export type { NormalizedLedgerDocument } from './hcsDocument';
 
 export interface TopicMessage {
   sequenceNumber: number;
@@ -124,25 +124,29 @@ export async function logVerificationAttempt(params: AuditRecord): Promise<void>
  */
 export async function fetchTopicMessages(): Promise<TopicMessage[]> {
   const topicId = process.env.HEDERA_TOPIC_ID;
-  const mirrorUrl =
-    process.env.HEDERA_MIRROR_NODE_URL ?? 'https://testnet.mirrornode.hedera.com';
+  const mirrorUrl = process.env.HEDERA_MIRROR_NODE_URL;
 
   if (!topicId) throw new Error('HEDERA_TOPIC_ID must be set in .env');
+  if (!mirrorUrl) throw new Error('HEDERA_MIRROR_NODE_URL must be set in .env');
 
-  const url = `${mirrorUrl}/api/v1/topics/${topicId}/messages?limit=100&order=asc`;
-  const res = await fetch(url);
+  type RawMessage = { sequence_number: number; consensus_timestamp: string; message: string };
+  type PageResponse = { messages: RawMessage[]; links?: { next?: string | null } };
 
-  if (!res.ok) {
-    throw new Error(`Mirror Node returned ${res.status}: ${await res.text()}`);
+  const raw: RawMessage[] = [];
+  let nextUrl: string | null = `${mirrorUrl}/api/v1/topics/${topicId}/messages?limit=100&order=asc`;
+
+  while (nextUrl) {
+    const res = await fetch(nextUrl);
+    if (!res.ok) {
+      throw new Error(`Mirror Node returned ${res.status} ${res.statusText}`);
+    }
+    const data = (await res.json()) as PageResponse;
+    raw.push(...data.messages);
+    const next = data.links?.next ?? null;
+    nextUrl = next ? `${mirrorUrl}${next}` : null;
   }
 
-  const data = (await res.json()) as { messages: Array<{
-    sequence_number: number;
-    consensus_timestamp: string;
-    message: string;
-  }> };
-
-  return data.messages
+  return raw
     .map((msg) => {
       const decoded = Buffer.from(msg.message, 'base64').toString('utf-8');
       let parsed: unknown;

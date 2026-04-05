@@ -13,11 +13,11 @@ const PORT = 3001;
 const corsOrigins =
   process.env.FRONTEND_URL?.split(',')
     .map((s) => s.trim())
-    .filter(Boolean) ?? ['http://localhost:5173'];
+    .filter(Boolean) ?? ['http://localhost:5174'];
 app.use(cors({ origin: corsOrigins }));
 app.use(express.json({ limit: '4kb' }));
 
-app.use('/api/issue', issueRouter);
+app.use('/api/issue', rateLimit({ windowMs: 60_000, max: 5 }), issueRouter);
 app.use('/api/verify', rateLimit({ windowMs: 60_000, max: 10 }), verifyRouter);
 app.use('/api/hedera/messages', hederaRouter);
 

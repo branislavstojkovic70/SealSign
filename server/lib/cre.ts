@@ -8,14 +8,16 @@
 import { WORKFLOW_NAME, WORKFLOW_VERSION } from '../cre/workflow';
 
 import { fetchTopicMessages } from './hedera';
-import { issuerVerifyLine, recipientVerifyLine } from './ledgerDocument';
+import { issuerVerifyLine, recipientVerifyLine } from './hcsDocument';
 
 export interface VerificationResult {
   verified: boolean;
   issuer: string | null;
   issuerAddress: string | null;
+  issuerEns: string | null;
   recipient: string | null;
   recipientAddress: string | null;
+  recipientEns: string | null;
   documentType: string | null;
   issuedAt: string | null;
   hederaSequence: number | null;
@@ -33,8 +35,10 @@ export async function verifyDocumentWithCRE(uploadedHash: string): Promise<Verif
       verified: false,
       issuer: null,
       issuerAddress: null,
+      issuerEns: null,
       recipient: null,
       recipientAddress: null,
+      recipientEns: null,
       documentType: null,
       issuedAt: null,
       hederaSequence: null,
@@ -48,8 +52,10 @@ export async function verifyDocumentWithCRE(uploadedHash: string): Promise<Verif
     verified: true,
     issuer: issuerVerifyLine(d),
     issuerAddress: d.issuerAddress,
+    issuerEns: d.issuerEns,
     recipient: recipientVerifyLine(d),
     recipientAddress: d.recipientAddress,
+    recipientEns: d.recipientEns,
     documentType: d.documentName || null,
     issuedAt: d.issuedAt || null,
     hederaSequence: match.sequenceNumber,
