@@ -17,6 +17,7 @@ export default function VerifyPage() {
 	const [verifyError, setVerifyError] = useState<string | null>(null);
 	const [result, setResult] = useState<VerifyApiResponse | null>(null);
 	const [showResult, setShowResult] = useState(false);
+	const [showSepoliaEns, setShowSepoliaEns] = useState(false);
 
 	const processFile = useCallback(async (file: File | undefined) => {
 		if (!file) return;
@@ -86,6 +87,8 @@ export default function VerifyPage() {
 						showResult={showResult}
 						verifyError={verifyError}
 						result={result}
+						showSepoliaEns={showSepoliaEns}
+						onShowSepoliaEnsChange={setShowSepoliaEns}
 					/>
 				</Grid>
 			</HomeShell>

@@ -1,6 +1,7 @@
 import { Box, Grid } from "@mui/material";
-import { useCallback, useState } from "react";
-import { useAppKitAccount } from "@reown/appkit/react";
+import { useCallback, useEffect, useState } from "react";
+import { ethers } from "ethers";
+import { useAppKitAccount, useAppKitProvider } from "@reown/appkit/react";
 import HomeShell from "../components/HomeShell";
 import PageScrollArea from "../components/PageScrollArea";
 import IssuePageHero from "../components/IssuePageHero";
@@ -9,12 +10,16 @@ import { sha256HexFromFile } from "../utils/hashFile";
 import { isPdfFile } from "../utils/issueHelpers";
 import { postIssue } from "../utils/issueApi";
 import type { IssueApiResult } from "../utils/issueApi";
+import { resolveEvmOrEns } from "../utils/sepoliaEns";
+import { resolveIssuePayment, sendNativeIssueFee } from "../utils/issuePayment";
 
 export default function IssuePage() {
 	const { isConnected, address } = useAppKitAccount();
+	const { walletProvider } = useAppKitProvider("eip155");
+	const payment = resolveIssuePayment();
 	const [documentName, setDocumentName] = useState("");
-	const [institutionName, setInstitutionName] = useState("");
-	const [recipientName, setRecipientName] = useState("");
+	const [issuerIdentity, setIssuerIdentity] = useState("");
+	const [recipientIdentity, setRecipientIdentity] = useState("");
 	const [fileLabel, setFileLabel] = useState<string | null>(null);
 	const [hashHex, setHashHex] = useState<string | null>(null);
 	const [hashError, setHashError] = useState<string | null>(null);
@@ -22,6 +27,12 @@ export default function IssuePage() {
 	const [submitting, setSubmitting] = useState(false);
 	const [issueError, setIssueError] = useState<string | null>(null);
 	const [issueResult, setIssueResult] = useState<IssueApiResult | null>(null);
+
+	useEffect(() => {
+		if (address) {
+			setIssuerIdentity((prev) => (prev.trim() === "" ? address : prev));
+		}
+	}, [address]);
 
 	const processFile = useCallback(async (file: File | undefined) => {
 		if (!file) return;
@@ -52,12 +63,43 @@ export default function IssuePage() {
 		setIssueError(null);
 		setSubmitting(true);
 		try {
+			const issuerResolved = await resolveEvmOrEns(issuerIdentity);
+			if (!issuerResolved) {
+				setIssueError(
+					"Issuer: enter a valid Sepolia address (0x…) or resolveable ENS name.",
+				);
+				return;
+			}
+			const recipientResolved = await resolveEvmOrEns(recipientIdentity);
+			if (!recipientResolved) {
+				setIssueError(
+					"Recipient: enter a valid Sepolia address (0x…) or resolveable ENS name.",
+				);
+				return;
+			}
+
+			const issuerRaw = issuerIdentity.trim();
+			const recipientRaw = recipientIdentity.trim();
+			const issuerEns = ethers.utils.isAddress(issuerRaw) ? undefined : issuerRaw;
+			const recipientEns = ethers.utils.isAddress(recipientRaw) ? undefined : recipientRaw;
+
+			let paymentTxHash: string | undefined;
+			if (payment.mode === "pay") {
+				if (!walletProvider || !address) {
+					setIssueError("Connect your wallet to pay the issue fee.");
+					return;
+				}
+				paymentTxHash = await sendNativeIssueFee(walletProvider, payment.config, address);
+			}
+
 			const result = await postIssue({
 				hash: hashHex,
-				issuerName: institutionName,
-				issuerAddress: address ?? '',
-				documentType: documentName,
-				recipientName,
+				documentName: documentName.trim(),
+				issuerAddress: issuerResolved,
+				recipientAddress: recipientResolved,
+				issuerEns,
+				recipientEns,
+				paymentTxHash,
 			});
 			setIssueResult(result);
 		} catch (err) {
@@ -67,12 +109,25 @@ export default function IssuePage() {
 		}
 	};
 
+	const paymentBlocked = payment.mode === "invalid";
+	const notarizeLabel =
+		payment.mode === "pay"
+			? `Pay ${payment.config.amountDisplay} ETH · Notarize`
+			: undefined;
+	const paymentHint =
+		payment.mode === "pay"
+			? `You will sign a ${payment.config.amountDisplay} ETH transfer (from env) on your connected network, then the hash is sent to Hedera.`
+			: payment.mode === "invalid"
+				? payment.message
+				: null;
+
 	const canNotarize =
 		isConnected &&
+		!paymentBlocked &&
 		Boolean(hashHex) &&
 		documentName.trim() !== "" &&
-		institutionName.trim() !== "" &&
-		recipientName.trim() !== "" &&
+		issuerIdentity.trim() !== "" &&
+		recipientIdentity.trim() !== "" &&
 		!hashing &&
 		!submitting &&
 		!issueResult;
@@ -101,11 +156,11 @@ export default function IssuePage() {
 					>
 						<IssueFormCard
 							documentName={documentName}
-							institutionName={institutionName}
-							recipientName={recipientName}
+							issuerIdentity={issuerIdentity}
+							recipientIdentity={recipientIdentity}
 							onDocumentNameChange={setDocumentName}
-							onInstitutionNameChange={setInstitutionName}
-							onRecipientNameChange={setRecipientName}
+							onIssuerIdentityChange={setIssuerIdentity}
+							onRecipientIdentityChange={setRecipientIdentity}
 							hashing={hashing}
 							fileLabel={fileLabel}
 							hashError={hashError}
@@ -120,6 +175,9 @@ export default function IssuePage() {
 							sequenceNumber={issueResult?.sequenceNumber ?? null}
 							explorerUrl={issueResult?.explorerUrl ?? null}
 							issueError={issueError}
+							notarizeLabel={notarizeLabel}
+							paymentHint={paymentHint}
+							paymentHintSeverity={paymentBlocked ? "error" : "info"}
 						/>
 					</Box>
 				</Grid>

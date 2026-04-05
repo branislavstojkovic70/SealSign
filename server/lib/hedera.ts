@@ -4,19 +4,18 @@ import {
   TopicMessageSubmitTransaction,
 } from '@hashgraph/sdk';
 
-export interface DocumentRecord {
-  hash: string;
-  issuer: string;
-  issuerAddress: string;
-  type: string;
-  recipient: string;
-  issuedAt: string;
-}
+import {
+  type NormalizedLedgerDocument,
+  type WrittenLedgerPayload,
+  normalizeLedgerDocument,
+} from './hcsDocument';
+
+export type { NormalizedLedgerDocument } from './hcsDocument';
 
 export interface TopicMessage {
   sequenceNumber: number;
   consensusTimestamp: string;
-  document: DocumentRecord;
+  document: NormalizedLedgerDocument;
 }
 
 /**
@@ -61,22 +60,24 @@ function buildClient(): Client {
  */
 export async function submitDocumentHash(params: {
   documentHash: string;
-  issuerName: string;
+  documentName: string;
   issuerAddress: string;
-  documentType: string;
-  recipientName: string;
+  recipientAddress: string;
+  issuerEns?: string;
+  recipientEns?: string;
 }): Promise<{ transactionId: string; sequenceNumber: number; timestamp: string }> {
   const topicId = process.env.HEDERA_TOPIC_ID;
   if (!topicId) throw new Error('HEDERA_TOPIC_ID must be set in .env');
 
-  const payload: DocumentRecord = {
+  const payload: WrittenLedgerPayload = {
     hash: params.documentHash,
-    issuer: params.issuerName,
+    documentName: params.documentName,
     issuerAddress: params.issuerAddress,
-    type: params.documentType,
-    recipient: params.recipientName,
+    recipientAddress: params.recipientAddress,
     issuedAt: new Date().toISOString(),
   };
+  if (params.issuerEns) payload.issuerEns = params.issuerEns;
+  if (params.recipientEns) payload.recipientEns = params.recipientEns;
 
   const client = buildClient();
 
@@ -123,31 +124,45 @@ export async function logVerificationAttempt(params: AuditRecord): Promise<void>
  */
 export async function fetchTopicMessages(): Promise<TopicMessage[]> {
   const topicId = process.env.HEDERA_TOPIC_ID;
-  const mirrorUrl =
-    process.env.HEDERA_MIRROR_NODE_URL ?? 'https://testnet.mirrornode.hedera.com';
+  const mirrorUrl = process.env.HEDERA_MIRROR_NODE_URL;
 
   if (!topicId) throw new Error('HEDERA_TOPIC_ID must be set in .env');
+  if (!mirrorUrl) throw new Error('HEDERA_MIRROR_NODE_URL must be set in .env');
 
-  const url = `${mirrorUrl}/api/v1/topics/${topicId}/messages?limit=100&order=asc`;
-  const res = await fetch(url);
+  type RawMessage = { sequence_number: number; consensus_timestamp: string; message: string };
+  type PageResponse = { messages: RawMessage[]; links?: { next?: string | null } };
 
-  if (!res.ok) {
-    throw new Error(`Mirror Node returned ${res.status}: ${await res.text()}`);
+  const MAX_MESSAGES = 2_000;
+  const raw: RawMessage[] = [];
+  let nextUrl: string | null = `${mirrorUrl}/api/v1/topics/${topicId}/messages?limit=100&order=asc`;
+
+  while (nextUrl && raw.length < MAX_MESSAGES) {
+    const res = await fetch(nextUrl);
+    if (!res.ok) {
+      throw new Error(`Mirror Node returned ${res.status} ${res.statusText}`);
+    }
+    const data = (await res.json()) as PageResponse;
+    raw.push(...data.messages);
+    const next = data.links?.next ?? null;
+    nextUrl = next ? `${mirrorUrl}${next}` : null;
   }
 
-  const data = (await res.json()) as { messages: Array<{
-    sequence_number: number;
-    consensus_timestamp: string;
-    message: string;
-  }> };
-
-  return data.messages.map((msg) => {
-    const decoded = Buffer.from(msg.message, 'base64').toString('utf-8');
-    const document = JSON.parse(decoded) as DocumentRecord;
-    return {
-      sequenceNumber: msg.sequence_number,
-      consensusTimestamp: msg.consensus_timestamp,
-      document,
-    };
-  });
+  return raw
+    .map((msg) => {
+      const decoded = Buffer.from(msg.message, 'base64').toString('utf-8');
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(decoded);
+      } catch {
+        return null;
+      }
+      const document = normalizeLedgerDocument(parsed);
+      if (!document) return null;
+      return {
+        sequenceNumber: msg.sequence_number,
+        consensusTimestamp: msg.consensus_timestamp,
+        document,
+      };
+    })
+    .filter((m): m is TopicMessage => m !== null);
 }

@@ -6,6 +6,7 @@ type VerifyResultPanelProps = {
 	open: boolean;
 	errorMessage: string | null;
 	result: VerifyApiResponse | null;
+	showSepoliaEns: boolean;
 };
 
 function StackedRow({ label, value }: { label: string; value: string | null }) {
@@ -24,8 +25,11 @@ export default function VerifyResultPanel({
 	open,
 	errorMessage,
 	result,
+	showSepoliaEns,
 }: VerifyResultPanelProps) {
 	const theme = useTheme();
+	const issuerEns = result?.verified ? (result.issuerEns ?? null) : null;
+	const recipientEns = result?.verified ? (result.recipientEns ?? null) : null;
 
 	if (errorMessage) {
 		return (
@@ -92,11 +96,17 @@ export default function VerifyResultPanel({
 					fontWeight={700}
 					sx={{ mb: 1 }}
 				>
-					Verified on ledger
+					Verified on Hedera HCS
 				</Typography>
 				<StackedRow label="Issuer" value={result.issuer} />
+				{showSepoliaEns && issuerEns ? (
+					<StackedRow label="Issuer ENS" value={issuerEns} />
+				) : null}
 				<StackedRow label="Document" value={result.documentType} />
 				<StackedRow label="Recipient" value={result.recipient} />
+				{showSepoliaEns && recipientEns ? (
+					<StackedRow label="Recipient ENS" value={recipientEns} />
+				) : null}
 				<StackedRow label="Issued" value={result.issuedAt} />
 				{result.hederaSequence != null ? (
 					<Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>

@@ -13,11 +13,12 @@ export default function IssueNotarizeButton({
 	walletConnected,
 	disabled,
 	onClick,
+	connectedLabel,
 }: IssueNotarizeButtonProps) {
 	const theme = useTheme();
 	const label = !walletConnected
 		? "Connect Wallet to Notarize"
-		: "Notarize on Hedera";
+		: connectedLabel ?? "Notarize on Hedera";
 
 	return (
 		<Button

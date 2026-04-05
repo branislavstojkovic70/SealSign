@@ -1,7 +1,6 @@
 import { createAppKit } from "@reown/appkit/react";
 import { Ethers5Adapter } from "@reown/appkit-adapter-ethers5";
 import { sepolia } from "@reown/appkit/networks";
-import { ledgerFeaturedWalletIds } from "./ledger";
 
 const projectId = import.meta.env.VITE_REOWN_PROJECT_ID as string;
 
@@ -27,5 +26,4 @@ createAppKit({
 	features: {
 		analytics: false,
 	},
-	featuredWalletIds: [...ledgerFeaturedWalletIds],
 });

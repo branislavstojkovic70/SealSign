@@ -3,8 +3,12 @@ import { API_BASE_URL } from "./api";
 export type VerifyApiOk = {
 	verified: true;
 	issuer: string | null;
+	issuerAddress?: string | null;
+	issuerEns?: string | null;
 	documentType: string | null;
 	recipient: string | null;
+	recipientAddress?: string | null;
+	recipientEns?: string | null;
 	issuedAt: string | null;
 	hederaSequence: number | null;
 };
