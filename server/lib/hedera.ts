@@ -132,10 +132,11 @@ export async function fetchTopicMessages(): Promise<TopicMessage[]> {
   type RawMessage = { sequence_number: number; consensus_timestamp: string; message: string };
   type PageResponse = { messages: RawMessage[]; links?: { next?: string | null } };
 
+  const MAX_MESSAGES = 2_000;
   const raw: RawMessage[] = [];
   let nextUrl: string | null = `${mirrorUrl}/api/v1/topics/${topicId}/messages?limit=100&order=asc`;
 
-  while (nextUrl) {
+  while (nextUrl && raw.length < MAX_MESSAGES) {
     const res = await fetch(nextUrl);
     if (!res.ok) {
       throw new Error(`Mirror Node returned ${res.status} ${res.statusText}`);

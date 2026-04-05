@@ -72,13 +72,11 @@ export default function Navbar() {
 							flex: "1 1 0%",
 						}}
 					>
-						<Box
-							component="img"
+						<img
 							src={`${import.meta.env.BASE_URL}logo_light.png`}
 							alt=""
-							sx={{
-								height: { xs: 28, sm: 32 },
-								width: "auto",
+							style={{
+								height: 32,
 								maxWidth: 120,
 								objectFit: "contain",
 								display: "block",

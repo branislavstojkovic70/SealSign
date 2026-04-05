@@ -1,8 +1,6 @@
 import { Box, Collapse, Typography, useTheme } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { useEffect, useState } from "react";
 import type { VerifyApiResponse } from "../utils/verifyApi";
-import { lookupSepoliaPrimary } from "../utils/sepoliaEns";
 
 type VerifyResultPanelProps = {
 	open: boolean;
@@ -30,35 +28,8 @@ export default function VerifyResultPanel({
 	showSepoliaEns,
 }: VerifyResultPanelProps) {
 	const theme = useTheme();
-	const [issuerPrimaryEns, setIssuerPrimaryEns] = useState<string | null>(null);
-	const [recipientPrimaryEns, setRecipientPrimaryEns] = useState<string | null>(null);
-	const [ensBusy, setEnsBusy] = useState(false);
-
-	useEffect(() => {
-		if (!open || !result?.verified || !showSepoliaEns) {
-			setIssuerPrimaryEns(null);
-			setRecipientPrimaryEns(null);
-			setEnsBusy(false);
-			return;
-		}
-		const issuerAddr = result.issuerAddress ?? null;
-		const recipientAddr = result.recipientAddress ?? null;
-		let cancelled = false;
-		setEnsBusy(true);
-		void Promise.all([
-			issuerAddr ? lookupSepoliaPrimary(issuerAddr) : Promise.resolve(null),
-			recipientAddr ? lookupSepoliaPrimary(recipientAddr) : Promise.resolve(null),
-		]).then(([iName, rName]) => {
-			if (!cancelled) {
-				setIssuerPrimaryEns(iName);
-				setRecipientPrimaryEns(rName);
-				setEnsBusy(false);
-			}
-		});
-		return () => {
-			cancelled = true;
-		};
-	}, [open, result, showSepoliaEns]);
+	const issuerEns = result?.verified ? (result.issuerEns ?? null) : null;
+	const recipientEns = result?.verified ? (result.recipientEns ?? null) : null;
 
 	if (errorMessage) {
 		return (
@@ -125,30 +96,16 @@ export default function VerifyResultPanel({
 					fontWeight={700}
 					sx={{ mb: 1 }}
 				>
-					Verified on ledger
+					Verified on Hedera HCS
 				</Typography>
 				<StackedRow label="Issuer" value={result.issuer} />
-				{showSepoliaEns ? (
-					<Typography variant="body2" sx={{ mb: 0.5, color: "text.primary" }}>
-						<Box component="span" sx={{ color: "text.disabled", mr: 0.5 }}>
-							Issuer primary (Sepolia ENS):
-						</Box>
-						{ensBusy
-							? "…"
-							: issuerPrimaryEns ?? "No primary name (or no issuer address on record)"}
-					</Typography>
+				{showSepoliaEns && issuerEns ? (
+					<StackedRow label="Issuer ENS" value={issuerEns} />
 				) : null}
 				<StackedRow label="Document" value={result.documentType} />
 				<StackedRow label="Recipient" value={result.recipient} />
-				{showSepoliaEns ? (
-					<Typography variant="body2" sx={{ mb: 0.5, color: "text.primary" }}>
-						<Box component="span" sx={{ color: "text.disabled", mr: 0.5 }}>
-							Recipient (Sepolia ENS):
-						</Box>
-						{ensBusy
-							? "…"
-							: recipientPrimaryEns ?? "No primary name (or no recipient address on record)"}
-					</Typography>
+				{showSepoliaEns && recipientEns ? (
+					<StackedRow label="Recipient ENS" value={recipientEns} />
 				) : null}
 				<StackedRow label="Issued" value={result.issuedAt} />
 				{result.hederaSequence != null ? (

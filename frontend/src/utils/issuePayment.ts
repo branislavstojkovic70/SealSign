@@ -75,13 +75,14 @@ function getEip1193Request(wallet: unknown): Eip1193RequestFn | null {
 
 /**
  * Sends fee via `eth_sendTransaction` (Reown / WalletConnect / browser wallet).
- * Does not wait for block confirmation so Hedera `postIssue` can run immediately after approval.
+ * Waits for one block confirmation so the server can verify the mined transaction.
+ * Returns the transaction hash to be passed to the server for on-chain verification.
  */
 export async function sendNativeIssueFee(
 	walletProvider: unknown,
 	config: IssuePaymentConfig,
 	fromAddress: string,
-): Promise<void> {
+): Promise<string> {
 	const request = getEip1193Request(walletProvider);
 	if (!request) {
 		throw new Error("Wallet does not expose an EIP-1193 provider (request).");
@@ -90,6 +91,12 @@ export async function sendNativeIssueFee(
 	const from = ethers.utils.getAddress(fromAddress);
 	const valueHex = ethers.BigNumber.from(config.value).toHexString();
 
+	const chainIdEnv = (import.meta.env.VITE_PAYMENT_CHAIN_ID as string | undefined)?.trim();
+	// Sepolia = 11155111 = 0xaa36a7 (default)
+	const chainId = chainIdEnv
+		? "0x" + parseInt(chainIdEnv, 10).toString(16)
+		: "0xaa36a7";
+
 	const txHash = await request({
 		method: "eth_sendTransaction",
 		params: [
@@ -97,6 +104,7 @@ export async function sendNativeIssueFee(
 				from,
 				to: config.recipient,
 				value: valueHex,
+				chainId,
 			},
 		],
 	});
@@ -104,4 +112,17 @@ export async function sendNativeIssueFee(
 	if (typeof txHash !== "string" || !/^0x[0-9a-f]{64}$/i.test(txHash)) {
 		throw new Error("Wallet returned an unexpected response for the payment transaction.");
 	}
+
+	// Wait for 1 confirmation before returning — Hedera notarization must not fire
+	// until the payment tx is mined. VITE_SEPOLIA_RPC_URL is required for payments.
+	const rpcUrl = (import.meta.env.VITE_SEPOLIA_RPC_URL as string | undefined)?.trim();
+	if (!rpcUrl) {
+		throw new Error(
+			"VITE_SEPOLIA_RPC_URL is not set — cannot confirm payment transaction.",
+		);
+	}
+	const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+	await provider.waitForTransaction(txHash, 1, 120_000);
+
+	return txHash;
 }

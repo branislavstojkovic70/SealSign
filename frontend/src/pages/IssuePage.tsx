@@ -83,12 +83,13 @@ export default function IssuePage() {
 			const issuerEns = ethers.utils.isAddress(issuerRaw) ? undefined : issuerRaw;
 			const recipientEns = ethers.utils.isAddress(recipientRaw) ? undefined : recipientRaw;
 
+			let paymentTxHash: string | undefined;
 			if (payment.mode === "pay") {
 				if (!walletProvider || !address) {
 					setIssueError("Connect your wallet to pay the issue fee.");
 					return;
 				}
-				await sendNativeIssueFee(walletProvider, payment.config, address);
+				paymentTxHash = await sendNativeIssueFee(walletProvider, payment.config, address);
 			}
 
 			const result = await postIssue({
@@ -98,6 +99,7 @@ export default function IssuePage() {
 				recipientAddress: recipientResolved,
 				issuerEns,
 				recipientEns,
+				paymentTxHash,
 			});
 			setIssueResult(result);
 		} catch (err) {

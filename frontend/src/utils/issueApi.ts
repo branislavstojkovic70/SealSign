@@ -8,6 +8,8 @@ export type IssueApiRequest = {
 	recipientAddress: string;
 	issuerEns?: string;
 	recipientEns?: string;
+	/** On-chain tx hash of the issue fee payment; required when the server has ISSUE_PAYMENT_RECIPIENT set. */
+	paymentTxHash?: string;
 };
 
 export type IssueApiResult = {
