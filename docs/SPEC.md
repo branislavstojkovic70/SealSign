@@ -1,5 +1,7 @@
 # SealSign — Complete Project Specification
 
+> **Note:** This document is the original design specification. The implementation may differ in file structure, library choices, and API field names. For the current setup guide, see [../README.md](../README.md).
+
 ## Project Overview
 
 **Name:** SealSign
@@ -17,7 +19,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│              FRONTEND (React 18 + Vite, port 5174)       │
+│              FRONTEND (React 19 + Vite, port 5174)       │
 │  ┌────────────┐  ┌──────────────────┐  ┌─────────────── │
 │  │  Issuer    │  │  Verifier        │  │  ENS Resolution │
 │  │  Dashboard │  │  Portal          │  │  Display        │
@@ -152,47 +154,48 @@ VITE_API_URL=http://localhost:3001
 
 ## Dependencies
 
+**Frontend (`frontend/package.json`):**
 ```json
 {
   "dependencies": {
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "react-router-dom": "^6.23.0",
-    "@hashgraph/sdk": "^2.46.0",
-    "@reown/appkit": "^1.0.0",
-    "@reown/appkit-adapter-ethers": "^1.0.0",
-    "ethers": "^6.11.0",
-    "lucide-react": "^0.400.0",
-    "express": "^4.19.0",
-    "cors": "^2.8.5",
-    "concurrently": "^8.2.0",
-    "@chainlink/cre-sdk": "latest"
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.14.0",
+    "@reown/appkit": "^1.8.19",
+    "@reown/appkit-adapter-ethers5": "^1.8.19",
+    "ethers": "^5.7.2",
+    "@mui/material": "^7.3.9",
+    "@emotion/react": "^11.14.0",
+    "react-hot-toast": "^2.6.0"
   },
   "devDependencies": {
-    "vite": "^5.2.0",
-    "@vitejs/plugin-react": "^4.3.0",
-    "tailwindcss": "^3.4.0",
-    "autoprefixer": "^10.4.0",
-    "postcss": "^8.4.0",
-    "typescript": "^5.4.0",
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0",
-    "@types/express": "^4.17.0",
-    "@types/cors": "^2.8.0",
-    "tsx": "^4.0.0"
-  },
-  "scripts": {
-    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
-    "dev:client": "vite",
-    "dev:server": "tsx watch server/index.ts",
-    "build": "tsc && vite build",
-    "lint": "eslint src server --ext .ts,.tsx"
+    "vite": "^8.0.1",
+    "typescript": "^5.9.3"
   }
 }
 ```
 
-> **Note:** Verify exact package names for Reown AppKit and Chainlink CRE at the hackathon. Use whatever the hackathon mentors provide.
+**Server (`server/package.json`):**
+```json
+{
+  "dependencies": {
+    "@hashgraph/sdk": "^2.46.0",
+    "@chainlink/cre-sdk": "^1.5.0",
+    "express": "^4.19.0",
+    "express-rate-limit": "^8.3.2",
+    "helmet": "^8.1.0",
+    "cors": "^2.8.5",
+    "ethers": "^6.11.0",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "tsx": "^4.11.0"
+  }
+}
+```
+
+> **Note:** Frontend uses ethers v5 (Reown AppKit adapter requirement). Server uses ethers v6. The project is split into `frontend/` and `server/` subdirectories, each with their own `package.json`.
 
 ---
 
@@ -371,36 +374,62 @@ All routes are on the Express backend (`http://localhost:3001`). The Vite dev se
 ### `POST /api/issue`
 ```json
 // Request
-{ "hash": "...", "issuerName": "...", "documentType": "...", "recipientName": "..." }
+{
+  "hash": "64-char SHA-256 hex",
+  "documentName": "Diploma — University of Belgrade",
+  "issuerAddress": "0xABC...",
+  "recipientAddress": "0xDEF...",
+  "issuerEns": "belgrade-university.eth",
+  "recipientEns": "student.eth",
+  "paymentTxHash": "0x..."
+}
 
 // Response
-{ "success": true, "transactionId": "0.0.12345@...", "sequenceNumber": 1, "timestamp": "...", "topicId": "0.0.XXXXX", "explorerUrl": "https://hashscan.io/testnet/transaction/..." }
+{
+  "success": true,
+  "transactionId": "0.0.12345@1720000000.000000000",
+  "sequenceNumber": 1,
+  "timestamp": "2026-04-05T10:00:00Z",
+  "topicId": "0.0.XXXXX",
+  "explorerUrl": "https://hashscan.io/testnet/transaction/..."
+}
 ```
 
 ### `POST /api/verify`
 ```json
 // Request
-{ "hash": "sha256-hex-string" }
+{ "hash": "64-char SHA-256 hex" }
 
 // Response (verified)
-{ "verified": true, "issuer": "...", "ensName": "belgrade-univ.eth", "documentType": "...", "recipient": "...", "issuedAt": "...", "hederaSequence": 1 }
+{
+  "verified": true,
+  "issuer": "belgrade-university.eth",
+  "issuerAddress": "0xABC...",
+  "issuerEns": "belgrade-university.eth",
+  "documentType": "Diploma — University of Belgrade",
+  "recipient": "0xDEF...",
+  "recipientAddress": "0xDEF...",
+  "recipientEns": "student.eth",
+  "issuedAt": "2026-04-05T10:00:00Z",
+  "hederaSequence": 1
+}
 
 // Response (not found)
 { "verified": false, "message": "No matching document found on Hedera ledger" }
 ```
 
-### `GET /api/hedera/messages`
-Debug route — returns all notarized document records.
+### `GET /api/hedera/messages?wallet=0x...`
+Public audit log — returns all HCS records where the wallet is issuer or recipient.
 
 ---
 
 ## UI Design Direction
 
-- **Theme:** Dark, enterprise/institutional
-- **Accent colors:** Emerald green `#10B981` (verified), Red `#EF4444` (tampered)
-- **Font:** Monospace or geometric sans-serif
-- **Background:** Subtle grid/mesh for "security" aesthetic
-- **Icons:** `lucide-react` (Shield, FileCheck, Lock, AlertTriangle)
+- **Theme:** Dark, enterprise/institutional (Material-UI v7 dark theme)
+- **Accent colors:** Emerald green `#58AD95` (primary/verified), Red `#DD3636` (tampered/error)
+- **Background:** `#141414` (near black), Paper: `#1E1E1E`
+- **Font:** Poppins (geometric sans-serif)
+- **Icons:** Material-UI icons (`@mui/icons-material`)
 
 ### Verify Result States
 
